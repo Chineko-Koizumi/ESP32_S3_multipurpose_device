@@ -7,13 +7,15 @@
 //-----------Screen related consts---------------
 //-----------------------------------------------
 
-  static const uint16_t MAX_IMAGE_WIDTH   = 240U;
-  static const uint16_t MAX_IMAGE_HIGHT   = 320U;
+  static const uint16_t MAX_IMAGE_WIDTH  = 240U;
+  static const uint16_t MAX_IMAGE_HIGHT  = 320U;
 
-  static const uint8_t  MAX_LINES_OF_TEXT = 19U; // Maximal value of lines to show on screen
-
-  static const uint8_t FONT_SIZE_2        = 2U;
-  static const uint8_t MAX_TEXT_LENGTH    = 20; //19 + '/0' characters is maximal for one line in 2x font size
+  static const uint8_t FONT_SIZE_1       = 1U;
+  static const uint8_t FONT_SIZE_2       = 2U;
+  static const uint8_t FONT_SIZE_3       = 3U;
+  static const uint8_t FONT_SIZE_4       = 4U;
+  static const uint8_t MAX_LINES_OF_TEXT = 19U; // Maximal value of lines to show on screen
+  static const uint8_t MAX_TEXT_LENGTH   = 20; //19 + '/0' characters is maximal for one line in 2x font size
 
 //-----------------------------------------------
 
@@ -21,7 +23,7 @@
 //----------Detector related consts--------------
 //-----------------------------------------------
 
-  static const float SEALEVELPRESSURE_HPA = 1013.25f;
+  static const uint16_t STACK_SIZE_BME680 = 2500U; // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
 
 //-----------------------------------------------
 
@@ -29,7 +31,6 @@ struct MyCoordinates
 {
   int16_t x;
   int16_t y;
-
 };
 
 #endif

@@ -31,32 +31,33 @@ SpritedText::SpritedText(   TFT_eSPI* ScreenPtr,
                             uint16_t fontFGColor, 
                             uint16_t fontBGColor, 
                             uint16_t fontMaskColor):
-SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor)
+SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor),
+m_MaxTextLength(maxTextLength)
 {
     for (size_t i = 0; (i < MAX_TEXT_LENGTH - 1)/* -1 beacause of '\0' */ && (i < maxTextLength); i++)
     {
         m_aText[i] = 'X';
         m_aText[i+1] = '\0';
     }
+    SpritedTextBase::m_ForegroundSprite.setTextSize(SpritedTextBase::m_FontSize);
+    SpritedTextBase::m_ForegroundSprite.setTextColor(SpritedTextBase::m_FontFGColor, SpritedTextBase::m_FontBGColor, false);
 
-    m_MaxTextWidth  = ScreenPtr->textWidth(m_aText) * fontSize;
-    m_MaxTextHeight = ScreenPtr->fontHeight() * fontSize;
+    m_MaxTextWidth  = m_ForegroundSprite.textWidth(m_aText);
+    m_MaxTextHeight = m_ForegroundSprite.fontHeight();
 
-    m_pCurrentWidth = m_MaxTextWidth;
+    m_CurrentWidth = m_MaxTextWidth;
     m_LastTextWidth = m_MaxTextWidth;
 
     SpritedTextBase::m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-    SpritedTextBase::m_ForegroundSprite.setTextSize(SpritedTextBase::m_FontSize);
-    SpritedTextBase::m_ForegroundSprite.setTextColor(SpritedTextBase::m_FontFGColor, SpritedTextBase::m_FontBGColor, false);
 
     memset(m_aText, '\0', MAX_TEXT_LENGTH);
 }
 
 SpritedText::~SpritedText(){}
 
-void SpritedText::setCString(char* cString)
+void SpritedText::setCString(char cString[])
 {
-    cString[MAX_TEXT_LENGTH - 1] = '\0';
+    cString[m_MaxTextLength] = '\0'; //m_MaxTextLength is the lenth of CString without '\0'
     strcpy(m_aText, cString);
 }
 
@@ -78,9 +79,9 @@ void SpritedText::printText()
 
 void SpritedText::removeSpriteEndingIfNecessery()
 {
-    m_pCurrentWidth = SpritedTextBase::m_pScreen->textWidth(m_aText) *  SpritedTextBase::m_FontSize;
+    m_CurrentWidth = SpritedTextBase::m_ForegroundSprite.textWidth(m_aText);
     
-    if(m_LastTextWidth > m_pCurrentWidth)
+    if(m_LastTextWidth > m_CurrentWidth)
     {
 
        /* SpritedTextBase::m_BackgroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x + (int16_t)m_pCurrentWidth, 
@@ -90,11 +91,11 @@ void SpritedText::removeSpriteEndingIfNecessery()
                                                 m_LastTextWidth - m_pCurrentWidth, 
                                                 m_MaxTextHeight);*/ //for some reason this does not work
 
-        SpritedTextBase::m_ForegroundSprite.fillRect(   m_pCurrentWidth, 
+        SpritedTextBase::m_ForegroundSprite.fillRect(   m_CurrentWidth, 
                                                         0, 
-                                                        m_LastTextWidth - m_pCurrentWidth, 
+                                                        m_LastTextWidth - m_CurrentWidth, 
                                                         m_MaxTextHeight, 
                                                         SpritedTextBase::m_FontBGColor);
     }
-    m_LastTextWidth = m_pCurrentWidth;
+    m_LastTextWidth = m_CurrentWidth;
 }

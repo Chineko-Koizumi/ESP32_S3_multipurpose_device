@@ -40,16 +40,17 @@ private:
 
     uint16_t m_MaxTextWidth;
     uint16_t m_MaxTextHeight;
+    uint16_t m_MaxTextLength;
 
-    uint8_t m_LastTextWidth;
-    uint8_t m_pCurrentWidth;
+    uint16_t m_LastTextWidth;
+    uint16_t m_CurrentWidth;
 
     void removeSpriteEndingIfNecessery();
 
 public:
     SpritedText(TFT_eSPI* ScreenPtr, 
                 const MyCoordinates& coords,
-                uint8_t  maxTextLength, 
+                uint8_t  maxTextLength,     //excluding '\0'
                 uint8_t fontSize, 
                 uint16_t fontFGColor, 
                 uint16_t fontBGColor, 
@@ -57,7 +58,7 @@ public:
 
     ~SpritedText();
 
-    void setCString(char* cString);
+    void setCString(char cString[]);
     char* getCharArrayPtr();
     void printText();
 };

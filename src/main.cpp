@@ -1,5 +1,3 @@
-#include <WiFi.h>
-
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
@@ -8,18 +6,111 @@
 #include "Horo.h"         //Background file
 #include "SpritedText.h"
 
+TaskHandle_t xHandleBME680              = NULL;
+SemaphoreHandle_t xMutexBME680CStrings  = NULL;
+
 TFT_eSPI tft  = TFT_eSPI();
 
 Adafruit_BME680 bme; // I2C
 
-SpritedText Text(&tft, MyCoordinates{6,5}, strlen("WiFi networks:"), FONT_SIZE_2, 0x4FA4U, 0x0U, 0xFFE0);
+char aTemperatureCString[]  = "99.99 C";
+char aHumidityCString[]     = "100.00%";
+char aPressureCString[]     = "1000hPa";
+
+SpritedText TextTemperature(&tft, MyCoordinates{5,150}, strlen(aTemperatureCString),  FONT_SIZE_4, 0x4FA4U, 0x0U, 0xFFE0);
+SpritedText TextHumidity(   &tft, MyCoordinates{5,190}, strlen(aHumidityCString),     FONT_SIZE_4, 0x4FA4U, 0x0U, 0xFFE0);
+SpritedText TextPressure(   &tft, MyCoordinates{5,230}, strlen(aPressureCString),     FONT_SIZE_4, 0x4FA4U, 0x0U, 0xFFE0);
+
+void taskBME680(void * pvParameters)
+{
+  unsigned long endTime, startTime;
+
+  while(true) 
+  {
+    startTime = millis();
+    endTime   = bme.beginReading(); // Tell BME680 to begin measurement.
+
+    if (endTime == 0) 
+    {
+      Serial.println("Failed to begin reading :(");
+    }
+    else
+    {
+      delay(endTime - startTime + 30U); 
+      // This represents parallel work.
+      // There's no need to delay() until millis() >= endTime: bme.endReading()
+      // takes care of that. It's okay for parallel work to take longer than
+      // BME680's measurement time.
+
+      // Obtain measurement results from BME680. Note that this operation isn't
+      // instantaneous even if milli() >= endTime due to I2C/SPI latency.
+      if (!bme.endReading()) 
+      {
+        Serial.println("Failed to complete reading :(");
+      }
+      else
+      {
+        if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+        {
+          /* We were able to obtain the semaphore and can now access the
+          shared resource. */
+          sprintf(aTemperatureCString, "%.1f C", bme.temperature);
+          /* We have finished accessing the shared resource.  Release the
+          semaphore. */
+          xSemaphoreGive( xMutexBME680CStrings );
+        }
+
+        Serial.print("Temperature = ");
+        Serial.print(bme.temperature);
+        Serial.println(" *C");
+
+        if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+        {
+          /* We were able to obtain the semaphore and can now access the
+          shared resource. */
+          sprintf(aHumidityCString, "%.1f%%", bme.humidity);
+          /* We have finished accessing the shared resource.  Release the
+          semaphore. */
+          xSemaphoreGive( xMutexBME680CStrings );
+        }
+
+        Serial.print("Humidity = ");
+        Serial.print(bme.humidity);
+        Serial.println(" %");
+
+        if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+        {
+          /* We were able to obtain the semaphore and can now access the
+          shared resource. */
+          sprintf(aPressureCString, "%luhPa", bme.pressure / 100);
+          /* We have finished accessing the shared resource.  Release the
+          semaphore. */
+          xSemaphoreGive( xMutexBME680CStrings );
+        }
+
+        Serial.print("Pressure = ");
+        Serial.print(bme.pressure / 100.0);
+        Serial.println(" hPa");
+
+        Serial.print("Gas = ");
+        Serial.print(bme.gas_resistance / 1000.0);
+        Serial.println(" KOhms");
+
+        Serial.println();
+      }
+    }
+    Serial.print("Stack:");
+    Serial.println(uxTaskGetStackHighWaterMark(xHandleBME680));
+    delay(2000);
+  }
+}
 
 void initScreenAndTouch()
 {
   // Initialise TFT screen
   tft.init();
-  tft.fillScreen(TFT_BLACK);
   tft.setTextSize(FONT_SIZE_2);
+  tft.fillScreen(TFT_BLACK);
 
   //Initialise TFT Touch
   uint16_t calData[5] = { 242, 3583, 325, 3617, 4 };
@@ -29,7 +120,7 @@ void initScreenAndTouch()
   tft.println("Touch Initialised");
 }
 
-void initWiFi()
+/* void initWiFi()
 {
   //Initialise ESP32 WiFi
   WiFi.mode(WIFI_STA);
@@ -38,6 +129,7 @@ void initWiFi()
   Serial.println("WiFi Initialised");
   tft.println("WiFi Initialised");
 }
+*/
 
 void initBME680()
 {
@@ -72,8 +164,8 @@ void setup()
   initScreenAndTouch();
   delay(100);
 
-  initWiFi();
-  delay(100);
+  //initWiFi();
+  //delay(100);
 
   initBME680();
   delay(100);
@@ -90,6 +182,15 @@ void setup()
   //Fill screen with BG image
   tft.setSwapBytes(true); 
   tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
+
+  xMutexBME680CStrings = xSemaphoreCreateMutex();
+
+  xTaskCreate(taskBME680,       // Function that implements the task. 
+              "BME680",         // Text name for the task. 
+              STACK_SIZE_BME680,// Stack size in words, not bytes. 
+              nullptr,          // Parameter passed into the task. 
+              3U,               // Priority at which the task is created. 
+              &xHandleBME680 ); // Used to pass out the created task's handle. 
 }
 
   bool pressed;
@@ -130,56 +231,6 @@ void loop(void)
 
   // Wait a bit before scanning again
   delay(5000); */
-
-  // Tell BME680 to begin measurement.
-  unsigned long endTime = bme.beginReading();
-  if (endTime == 0) {
-    Serial.println(F("Failed to begin reading :("));
-    return;
-  }
-  Serial.print(F("Reading started at "));
-  Serial.print(millis());
-  Serial.print(F(" and will finish at "));
-  Serial.println(endTime);
-
-  Serial.println(F("You can do other work during BME680 measurement."));
-  delay(50); // This represents parallel work.
-  // There's no need to delay() until millis() >= endTime: bme.endReading()
-  // takes care of that. It's okay for parallel work to take longer than
-  // BME680's measurement time.
-
-  // Obtain measurement results from BME680. Note that this operation isn't
-  // instantaneous even if milli() >= endTime due to I2C/SPI latency.
-  if (!bme.endReading()) {
-    Serial.println(F("Failed to complete reading :("));
-    return;
-  }
-  Serial.print(F("Reading completed at "));
-  Serial.println(millis());
-
-  Serial.print(F("Temperature = "));
-  Serial.print(bme.temperature);
-  Serial.println(F(" *C"));
-
-  Serial.print(F("Pressure = "));
-  Serial.print(bme.pressure / 100.0);
-  Serial.println(F(" hPa"));
-
-  Serial.print(F("Humidity = "));
-  Serial.print(bme.humidity);
-  Serial.println(F(" %"));
-
-  Serial.print(F("Gas = "));
-  Serial.print(bme.gas_resistance / 1000.0);
-  Serial.println(F(" KOhms"));
-
-  Serial.print(F("Approx. Altitude = "));
-  Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-  Serial.println(F(" m"));
-
-  Serial.println();
-  delay(2000);
-
   // Pressed will be set true is there is a valid touch on the screen
   pressed = tft.getTouch(&x, &y);
 
@@ -191,6 +242,42 @@ void loop(void)
     Serial.print(",");
     Serial.println(y);
   }
+
+    if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+    {
+      /* We were able to obtain the semaphore and can now access the
+      shared resource. */
+      TextTemperature.setCString(aTemperatureCString);
+      /* We have finished accessing the shared resource.  Release the
+      semaphore. */
+      xSemaphoreGive( xMutexBME680CStrings );
+    }
+
+    if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+    {
+      /* We were able to obtain the semaphore and can now access the
+      shared resource. */
+      TextHumidity.setCString(aHumidityCString);
+      /* We have finished accessing the shared resource.  Release the
+      semaphore. */
+      xSemaphoreGive( xMutexBME680CStrings );
+    }
+
+    if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+    {
+      /* We were able to obtain the semaphore and can now access the
+      shared resource. */
+      TextPressure.setCString(aPressureCString);
+      /* We have finished accessing the shared resource.  Release the
+      semaphore. */
+      xSemaphoreGive( xMutexBME680CStrings );
+    }
+
+    TextTemperature.printText();
+    TextHumidity.printText();
+    TextPressure.printText();
+
+  delay(32);
 }
 
 // Code to run a screen calibration, not needed when calibration values set in setup()
