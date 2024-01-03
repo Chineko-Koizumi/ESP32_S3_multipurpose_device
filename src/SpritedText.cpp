@@ -1,23 +1,20 @@
 #include "SpritedText.h"
 
 SpritedTextBase::SpritedTextBase(   TFT_eSPI* ScreenPtr, 
-                            uint16_t* imagePtr, 
-                            const MyCoordinates& coords, 
-                            uint8_t fontSize, 
-                            uint16_t fontFGColor, 
-                            uint16_t fontBGColor, 
-                            uint16_t fontMaskColor):
+                                    const MyCoordinates& coords, 
+                                    uint8_t fontSize, 
+                                    uint16_t fontFGColor, 
+                                    uint16_t fontBGColor, 
+                                    uint16_t fontMaskColor):
     m_pScreen(ScreenPtr),
-    m_BackgroundSprite(TFT_eSprite(ScreenPtr)),
     m_ForegroundSprite(TFT_eSprite(ScreenPtr)),
     m_SpritePos(coords),
     m_FontSize(fontSize),
     m_FontFGColor(fontFGColor),
     m_FontBGColor(fontBGColor),
-    m_FontMaskColor(fontMaskColor),
-    m_pImage(imagePtr)
+    m_FontMaskColor(fontMaskColor)
 {
-    m_BackgroundSprite.setSwapBytes(true);   
+
 }
 
 SpritedTextBase::~SpritedTextBase(){}
@@ -27,22 +24,26 @@ void SpritedTextBase::setCoordinates(const MyCoordinates& coords)
     m_SpritePos = coords;
 }
 
-SpritedText::SpritedText(   TFT_eSPI* ScreenPtr, 
-                            uint16_t* imagePtr, 
-                            const MyCoordinates& coords, 
+SpritedText::SpritedText(   TFT_eSPI* ScreenPtr,  
+                            const MyCoordinates& coords,
+                            uint8_t  maxTextLength, 
                             uint8_t fontSize, 
                             uint16_t fontFGColor, 
                             uint16_t fontBGColor, 
                             uint16_t fontMaskColor):
-SpritedTextBase(ScreenPtr, imagePtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor),
-m_aText{'X','X','X','X','X','X','X','X','X','X','X','X','X','X','X','\0'},
-m_MaxTextWidth(ScreenPtr->textWidth(m_aText) * fontSize),
-m_MaxTextHeight(ScreenPtr->fontHeight() * fontSize),
-m_pCurrentWidth(m_MaxTextWidth),
-m_LastTextWidth(m_MaxTextWidth)
+SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor)
 {
-    SpritedTextBase::m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-    SpritedTextBase::m_BackgroundSprite.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, imagePtr);
+    for (size_t i = 0; (i < MAX_TEXT_LENGTH - 1)/* -1 beacause of '\0' */ && (i < maxTextLength); i++)
+    {
+        m_aText[i] = 'X';
+        m_aText[i+1] = '\0';
+    }
+
+    m_MaxTextWidth  = ScreenPtr->textWidth(m_aText) * fontSize;
+    m_MaxTextHeight = ScreenPtr->fontHeight() * fontSize;
+
+    m_pCurrentWidth = m_MaxTextWidth;
+    m_LastTextWidth = m_MaxTextWidth;
 
     SpritedTextBase::m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
     SpritedTextBase::m_ForegroundSprite.setTextSize(SpritedTextBase::m_FontSize);
@@ -50,7 +51,14 @@ m_LastTextWidth(m_MaxTextWidth)
 
     memset(m_aText, '\0', MAX_TEXT_LENGTH);
 }
+
 SpritedText::~SpritedText(){}
+
+void SpritedText::setCString(char* cString)
+{
+    cString[MAX_TEXT_LENGTH - 1] = '\0';
+    strcpy(m_aText, cString);
+}
 
 char* SpritedText::getCharArrayPtr()
 {

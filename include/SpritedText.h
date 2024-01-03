@@ -9,10 +9,9 @@
 class SpritedTextBase
 {
 protected:
-    TFT_eSPI*   m_pScreen;
-    TFT_eSprite m_BackgroundSprite;
-    TFT_eSprite m_ForegroundSprite;
-    MyCoordinates m_SpritePos;
+    TFT_eSPI*       m_pScreen;
+    TFT_eSprite    m_ForegroundSprite;
+    MyCoordinates   m_SpritePos;
 
     uint8_t m_FontSize;
     uint16_t m_FontFGColor;
@@ -23,12 +22,12 @@ protected:
 
 public:
     SpritedTextBase(TFT_eSPI* ScreenPtr, 
-                uint16_t* imagePtr, 
                 const MyCoordinates& coords, 
                 uint8_t fontSize, 
                 uint16_t fontFGColor, 
                 uint16_t fontBGColor, 
                 uint16_t fontMaskColor);
+
     ~SpritedTextBase();
 
     void setCoordinates(const MyCoordinates& coords);
@@ -37,7 +36,6 @@ public:
 class SpritedText : public SpritedTextBase
 {
 private:
-    const static uint8_t MAX_TEXT_LENGTH = 16;
     char m_aText[MAX_TEXT_LENGTH];
 
     uint16_t m_MaxTextWidth;
@@ -49,15 +47,17 @@ private:
     void removeSpriteEndingIfNecessery();
 
 public:
-    SpritedText( TFT_eSPI* ScreenPtr, 
-                        uint16_t* imagePtr, 
-                        const MyCoordinates& coords, 
-                        uint8_t fontSize, 
-                        uint16_t fontFGColor, 
-                        uint16_t fontBGColor, 
-                        uint16_t fontMaskColor);
+    SpritedText(TFT_eSPI* ScreenPtr, 
+                const MyCoordinates& coords,
+                uint8_t  maxTextLength, 
+                uint8_t fontSize, 
+                uint16_t fontFGColor, 
+                uint16_t fontBGColor, 
+                uint16_t fontMaskColor);
+
     ~SpritedText();
 
+    void setCString(char* cString);
     char* getCharArrayPtr();
     void printText();
 };
