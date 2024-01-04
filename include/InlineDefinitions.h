@@ -23,7 +23,11 @@
 //----------Detector related consts--------------
 //-----------------------------------------------
 
-  static const uint16_t STACK_SIZE_BME680 = 2500U; // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
+  static const uint16_t STACK_SIZE_BME680                   = 2500U;      // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
+  static const uint32_t STATE_SAVE_PERIOD	                  = 21600000U;  // 360 minutes - 4 times a day
+  static const uint32_t LOW_POWER_MODE_DETECTOR_READ_PERIOD	= 3000;       //3 sec
+  static const int8_t  PRESSURE_OFFSET                      = 33;
+  static const int8_t  HUMIDITY_OFFSET                      = -2; 
 
 //-----------------------------------------------
 

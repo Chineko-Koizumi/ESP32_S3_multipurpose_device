@@ -5,6 +5,7 @@
 #include <TFT_eSPI.h>      // Hardware-specific library
 
 #include "InlineDefinitions.h"
+#include "FreeFonts.h"
 
 class SpritedTextBase
 {

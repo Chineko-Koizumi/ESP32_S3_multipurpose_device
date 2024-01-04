@@ -41,6 +41,7 @@ m_MaxTextLength(maxTextLength)
     }
     SpritedTextBase::m_ForegroundSprite.setTextSize(SpritedTextBase::m_FontSize);
     SpritedTextBase::m_ForegroundSprite.setTextColor(SpritedTextBase::m_FontFGColor, SpritedTextBase::m_FontBGColor, false);
+    SpritedTextBase::m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
 
     m_MaxTextWidth  = m_ForegroundSprite.textWidth(m_aText);
     m_MaxTextHeight = m_ForegroundSprite.fontHeight();
@@ -70,7 +71,7 @@ void SpritedText::printText()
 {
     SpritedTextBase::m_ForegroundSprite.setCursor(SpritedTextBase::m_SpritePos.x, SpritedTextBase::m_SpritePos.y);
     removeSpriteEndingIfNecessery();
-    SpritedTextBase::m_ForegroundSprite.drawString(m_aText, 0, 0);
+    SpritedTextBase::m_ForegroundSprite.drawString(m_aText, 0, 6);
 
     SpritedTextBase::m_ForegroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x, 
                                                     SpritedTextBase::m_SpritePos.y, 
@@ -84,12 +85,12 @@ void SpritedText::removeSpriteEndingIfNecessery()
     if(m_LastTextWidth > m_CurrentWidth)
     {
 
-       /* SpritedTextBase::m_BackgroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x + (int16_t)m_pCurrentWidth, 
+        /* SpritedTextBase::m_BackgroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x + m_CurrentWidth, 
                                                 SpritedTextBase::m_SpritePos.y,
-                                                SpritedTextBase::m_SpritePos.x + (int16_t)m_pCurrentWidth, 
+                                                SpritedTextBase::m_SpritePos.x + m_CurrentWidth, 
                                                 SpritedTextBase::m_SpritePos.y,
-                                                m_LastTextWidth - m_pCurrentWidth, 
-                                                m_MaxTextHeight);*/ //for some reason this does not work
+                                                m_LastTextWidth - m_CurrentWidth, 
+                                                m_MaxTextHeight); */ //for some reason this does not work
 
         SpritedTextBase::m_ForegroundSprite.fillRect(   m_CurrentWidth, 
                                                         0, 

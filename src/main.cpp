@@ -1,107 +1,201 @@
-#include <Wire.h>
 #include <SPI.h>
-#include <Adafruit_Sensor.h>
-#include "Adafruit_BME680.h"
+#include <EEPROM.h>
+
+#include "bsec.h"
 
 #include "Horo.h"         //Background file
 #include "SpritedText.h"
 
+//------------START OF GLOBALS-----------------
+
+//Multi threading globals 
 TaskHandle_t xHandleBME680              = NULL;
 SemaphoreHandle_t xMutexBME680CStrings  = NULL;
 
+//Screen globals
 TFT_eSPI tft  = TFT_eSPI();
 
-Adafruit_BME680 bme; // I2C
+//BME680 globals
+Bsec iaqSensor;
+uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE] = {0};
+uint16_t stateUpdateCounter = 0;
 
+const uint8_t bsec_config_iaq[] = { 
+#include "config/generic_33v_3s_28d/bsec_iaq.txt" 
+};
+
+//Text on display globals
 char aTemperatureCString[]  = "99.99 C";
 char aHumidityCString[]     = "100.00%";
 char aPressureCString[]     = "1000hPa";
 
-SpritedText TextTemperature(&tft, MyCoordinates{5,150}, strlen(aTemperatureCString),  FONT_SIZE_4, 0x4FA4U, 0x0U, 0xFFE0);
-SpritedText TextHumidity(   &tft, MyCoordinates{5,190}, strlen(aHumidityCString),     FONT_SIZE_4, 0x4FA4U, 0x0U, 0xFFE0);
-SpritedText TextPressure(   &tft, MyCoordinates{5,230}, strlen(aPressureCString),     FONT_SIZE_4, 0x4FA4U, 0x0U, 0xFFE0);
+SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFE0);
+SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFE0);
+SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFE0);
+
+//-------------END OF GLOBALS-----------------
+
+// Helper function definitions
+void checkIaqSensorStatus(void)
+{
+  if (iaqSensor.bsecStatus != BSEC_OK) 
+  {
+    if (iaqSensor.bsecStatus < BSEC_OK) 
+    {
+      Serial.print("BSEC error code : ");
+      Serial.println(iaqSensor.bsecStatus);
+      for (;;); /* Halt in case of failure */
+    } 
+    else 
+    {
+      Serial.print("BSEC warning code : ");
+      Serial.println(iaqSensor.bsecStatus);
+    }
+  }
+
+  if (iaqSensor.bme68xStatus != BME68X_OK) 
+  {
+    if (iaqSensor.bme68xStatus < BME68X_OK) 
+    {
+      Serial.print("BME68X error code : ");
+      Serial.println(iaqSensor.bme68xStatus);
+      for (;;); /* Halt in case of failure */
+    } 
+    else 
+    {
+      Serial.print("BME68X warning code : ");
+      Serial.println(iaqSensor.bme68xStatus);
+    }
+  }
+}
+
+void loadState(void)
+{
+  if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE) 
+  {
+    // Existing state in EEPROM
+    Serial.println("Reading state from EEPROM");
+
+    for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++) 
+    {
+      bsecState[i] = EEPROM.read(i + 1);
+      Serial.println(bsecState[i], HEX);
+    }
+
+    iaqSensor.setState(bsecState);
+    checkIaqSensorStatus();
+  } 
+  else 
+  {
+    // Erase the EEPROM with zeroes
+    Serial.println("Erasing EEPROM");
+
+    for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE + 1; i++)
+    {
+      EEPROM.write(i, 0);
+    }
+
+    EEPROM.commit();
+  }
+}
+
+void updateState(void)
+{
+  bool update = false;
+  if (stateUpdateCounter == 0) 
+  {
+    /* First state update when IAQ accuracy is >= 3 */
+    if (iaqSensor.iaqAccuracy >= 3) 
+    {
+      update = true;
+      stateUpdateCounter++;
+    }
+  } 
+  else 
+  {
+    /* Update every STATE_SAVE_PERIOD minutes */
+    if ((stateUpdateCounter * STATE_SAVE_PERIOD) < millis()) 
+    {
+      update = true;
+      stateUpdateCounter++;
+    }
+  }
+
+  if (update) 
+  {
+    iaqSensor.getState(bsecState);
+    checkIaqSensorStatus();
+
+    Serial.println("Writing state to EEPROM");
+
+    for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE ; i++) 
+    {
+      EEPROM.write(i + 1, bsecState[i]);
+      Serial.println(bsecState[i], HEX);
+    }
+
+    EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
+    EEPROM.commit();
+  }
+}
 
 void taskBME680(void * pvParameters)
 {
-  unsigned long endTime, startTime;
-
   while(true) 
   {
-    startTime = millis();
-    endTime   = bme.beginReading(); // Tell BME680 to begin measurement.
-
-    if (endTime == 0) 
-    {
-      Serial.println("Failed to begin reading :(");
-    }
-    else
-    {
-      delay(endTime - startTime + 30U); 
-      // This represents parallel work.
-      // There's no need to delay() until millis() >= endTime: bme.endReading()
-      // takes care of that. It's okay for parallel work to take longer than
-      // BME680's measurement time.
-
-      // Obtain measurement results from BME680. Note that this operation isn't
-      // instantaneous even if milli() >= endTime due to I2C/SPI latency.
-      if (!bme.endReading()) 
+    if (iaqSensor.run()) 
+    { // If new data is available
+      if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
       {
-        Serial.println("Failed to complete reading :(");
+        /* We were able to obtain the semaphore and can now access the
+        shared resource. */
+        sprintf(aTemperatureCString, "%.1fC", iaqSensor.temperature);
+        /* We have finished accessing the shared resource.  Release the
+        semaphore. */
+        xSemaphoreGive( xMutexBME680CStrings );
       }
-      else
+
+      Serial.print("Temperature = ");
+      Serial.print(aTemperatureCString);
+
+      if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
       {
-        if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
-        {
-          /* We were able to obtain the semaphore and can now access the
-          shared resource. */
-          sprintf(aTemperatureCString, "%.1f C", bme.temperature);
-          /* We have finished accessing the shared resource.  Release the
-          semaphore. */
-          xSemaphoreGive( xMutexBME680CStrings );
-        }
-
-        Serial.print("Temperature = ");
-        Serial.print(bme.temperature);
-        Serial.println(" *C");
-
-        if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
-        {
-          /* We were able to obtain the semaphore and can now access the
-          shared resource. */
-          sprintf(aHumidityCString, "%.1f%%", bme.humidity);
-          /* We have finished accessing the shared resource.  Release the
-          semaphore. */
-          xSemaphoreGive( xMutexBME680CStrings );
-        }
-
-        Serial.print("Humidity = ");
-        Serial.print(bme.humidity);
-        Serial.println(" %");
-
-        if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
-        {
-          /* We were able to obtain the semaphore and can now access the
-          shared resource. */
-          sprintf(aPressureCString, "%luhPa", bme.pressure / 100);
-          /* We have finished accessing the shared resource.  Release the
-          semaphore. */
-          xSemaphoreGive( xMutexBME680CStrings );
-        }
-
-        Serial.print("Pressure = ");
-        Serial.print(bme.pressure / 100.0);
-        Serial.println(" hPa");
-
-        Serial.print("Gas = ");
-        Serial.print(bme.gas_resistance / 1000.0);
-        Serial.println(" KOhms");
-
-        Serial.println();
+        /* We were able to obtain the semaphore and can now access the
+        shared resource. */
+        sprintf(aHumidityCString, "%.1f%%", iaqSensor.humidity + (float)HUMIDITY_OFFSET);
+        /* We have finished accessing the shared resource.  Release the
+        semaphore. */
+        xSemaphoreGive( xMutexBME680CStrings );
       }
+
+      Serial.print("Humidity = ");
+      Serial.print(aHumidityCString);
+
+      if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+      {
+        /* We were able to obtain the semaphore and can now access the
+        shared resource. */
+        sprintf(aPressureCString, "%.0fhPa", iaqSensor.pressure / 100.0f + (float)PRESSURE_OFFSET);
+        /* We have finished accessing the shared resource.  Release the
+        semaphore. */
+        xSemaphoreGive( xMutexBME680CStrings );
+      }
+
+      Serial.print("Pressure = ");
+      Serial.print(aPressureCString);
+      Serial.println();
+
+      updateState();
+    } 
+    else 
+    {
+      checkIaqSensorStatus();
     }
-    Serial.print("Stack:");
-    Serial.println(uxTaskGetStackHighWaterMark(xHandleBME680));
-    delay(2000);
+
+    Serial.print("BM680Stack:");
+    Serial.print(uxTaskGetStackHighWaterMark(xHandleBME680));
+    Serial.println("Bytes");
+    delay(LOW_POWER_MODE_DETECTOR_READ_PERIOD);
   }
 }
 
@@ -133,27 +227,41 @@ void initScreenAndTouch()
 
 void initBME680()
 {
-  //Initialize BME680 detector
-  Serial.print("BME680 test: ");
-  tft.print("BME680 test: ");
-  if (!bme.begin()) 
-  {
-    Serial.println("Could not find a valid BME680 sensor, check wiring!");
-    tft.println("Could not find a valid BME680 sensor, check wiring!");
-    while (1);
-  }
-  Serial.println("Passed");
-  tft.println("Passed");
+  iaqSensor.begin(BME68X_I2C_ADDR_HIGH, Wire);
+  String LibraryVersion = "BSEC library version" + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
+  Serial.println(LibraryVersion);
+  tft.println(LibraryVersion);
+  checkIaqSensorStatus();
 
-  // Set up oversampling and filter initialization
-  bme.setTemperatureOversampling(BME680_OS_8X);
-  bme.setHumidityOversampling(BME680_OS_2X);
-  bme.setPressureOversampling(BME680_OS_4X);
-  bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
-  bme.setGasHeater(320, 150); // 320*C for 150 ms
+  iaqSensor.setTemperatureOffset(1.0f);
+  iaqSensor.setConfig(bsec_config_iaq);
+  checkIaqSensorStatus();
 
-  Serial.println("BME680 values set");
-  tft.println("BME680 values set");
+  loadState();
+  Serial.println("EEPROM config loaded");
+  tft.println("EEPROM config loaded");
+
+  bsec_virtual_sensor_t sensorList[13] = {
+    BSEC_OUTPUT_IAQ,
+    BSEC_OUTPUT_STATIC_IAQ,
+    BSEC_OUTPUT_CO2_EQUIVALENT,
+    BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+    BSEC_OUTPUT_RAW_TEMPERATURE,
+    BSEC_OUTPUT_RAW_PRESSURE,
+    BSEC_OUTPUT_RAW_HUMIDITY,
+    BSEC_OUTPUT_RAW_GAS,
+    BSEC_OUTPUT_STABILIZATION_STATUS,
+    BSEC_OUTPUT_RUN_IN_STATUS,
+    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+    BSEC_OUTPUT_GAS_PERCENTAGE
+  };
+
+  iaqSensor.updateSubscription(sensorList, 13, BSEC_SAMPLE_RATE_LP);
+  checkIaqSensorStatus();
+
+  Serial.println("BME680 Initialised");
+  tft.println("BME680 Initialised");
 }
 
 void setup() 
