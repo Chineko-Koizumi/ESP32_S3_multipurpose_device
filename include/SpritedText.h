@@ -10,7 +10,8 @@
 class SpritedTextBase
 {
 protected:
-    TFT_eSPI*       m_pScreen;
+    char m_aText[MAX_TEXT_LENGTH];
+
     TFT_eSprite    m_ForegroundSprite;
     MyCoordinates   m_SpritePos;
 
@@ -31,14 +32,14 @@ public:
 
     ~SpritedTextBase();
 
+    void setCString(char cString[]);
+    char* getCharArrayPtr();
     void setCoordinates(const MyCoordinates& coords);
 };
 
 class SpritedText : public SpritedTextBase
 {
 private:
-    char m_aText[MAX_TEXT_LENGTH];
-
     uint16_t m_MaxTextWidth;
     uint16_t m_MaxTextHeight;
     uint16_t m_MaxTextLength;
@@ -59,8 +60,33 @@ public:
 
     ~SpritedText();
 
-    void setCString(char cString[]);
-    char* getCharArrayPtr();
+    void printText();
+};
+
+class IAQText : public SpritedTextBase
+{
+private:
+    static const uint8_t MAX_IAQ_READING_LENGTH   = 3U;
+    static const uint8_t IAQ_COLOR_COUNT          = 8U; 
+    static const uint8_t IAQ_LEVEL_STEP_VALUE     = 50U; 
+
+    uint16_t m_TextWidth;
+    uint16_t m_TextHeight;
+
+    uint16_t m_IAQReading;
+    uint8_t m_IAQColorIndex;
+
+    u_int16_t m_aIAQColors[IAQ_COLOR_COUNT];
+
+public:
+    IAQText(TFT_eSPI* ScreenPtr, 
+            const MyCoordinates& coords, 
+            uint8_t fontSize, 
+            uint16_t fontFGColor, 
+            uint16_t fontBGColor, 
+            uint16_t fontMaskColor);
+    ~IAQText();
+
     void printText();
 };
 

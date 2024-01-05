@@ -81,7 +81,27 @@ float SensorBME680::getPressure()
     return iaqSensor.pressure; 
 }
 
-void SensorBME680::checkIaqSensorStatus(void)
+float SensorBME680::getStaticIAQ()
+{
+    return iaqSensor.staticIaq;
+}
+
+uint8_t SensorBME680::getStaticIAQaccuracy()
+{
+   return iaqSensor.staticIaqAccuracy; 
+}
+
+float SensorBME680::getIAQ()
+{
+    return iaqSensor.iaq;
+}
+
+uint8_t SensorBME680::getIAQaccuracy()
+{
+   return iaqSensor.iaqAccuracy; 
+}
+
+void SensorBME680::checkIaqSensorStatus()
 {
     if (iaqSensor.bsecStatus != BSEC_OK) 
     {
@@ -114,7 +134,7 @@ void SensorBME680::checkIaqSensorStatus(void)
     }
 }
 
-void SensorBME680::loadState(void)
+void SensorBME680::loadState()
 {
     if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE) 
     {
@@ -144,7 +164,7 @@ void SensorBME680::loadState(void)
     }
 }
 
-void SensorBME680::updateState(void)
+void SensorBME680::updateState()
 {
     bool update = false;
     if (stateUpdateCounter == 0) 
@@ -152,8 +172,8 @@ void SensorBME680::updateState(void)
         /* First state update when IAQ accuracy is >= 3 */
         if (iaqSensor.iaqAccuracy >= 3) 
         {
-        update = true;
-        stateUpdateCounter++;
+            update = true;
+            stateUpdateCounter++;
         }
     } 
     else 
@@ -161,8 +181,8 @@ void SensorBME680::updateState(void)
         /* Update every STATE_SAVE_PERIOD minutes */
         if ((stateUpdateCounter * STATE_SAVE_PERIOD) < millis()) 
         {
-        update = true;
-        stateUpdateCounter++;
+            update = true;
+            stateUpdateCounter++;
         }
     }
 
@@ -175,9 +195,10 @@ void SensorBME680::updateState(void)
 
         for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE ; i++) 
         {
-        EEPROM.write(i + 1, bsecState[i]);
-        Serial.println(bsecState[i], HEX);
+            EEPROM.write(i + 1, bsecState[i]);
+            Serial.print(bsecState[i], HEX);
         }
+        Serial.println();
 
         EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
         EEPROM.commit();

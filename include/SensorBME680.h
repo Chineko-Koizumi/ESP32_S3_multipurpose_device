@@ -30,6 +30,10 @@ public:
     static float getTemperature();
     static float getHumidity();
     static float getPressure();
+    static float getStaticIAQ();
+    static uint8_t getStaticIAQaccuracy();
+    static float getIAQ();
+    static uint8_t getIAQaccuracy();
 
 };
 

@@ -18,9 +18,13 @@ char aTemperatureCString[]  = "99.99 C";
 char aHumidityCString[]     = "100.00%";
 char aPressureCString[]     = "1000hPa";
 
-SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFE0);
-SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFE0);
-SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFE0);
+SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0U);
+SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0U);
+SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0U);
+
+char aIAQCString[] = "999";
+
+IAQText TextIAQ(&tft, MyCoordinates{0,0}, FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0);
 
 //-------------END OF GLOBALS-----------------
 
@@ -32,9 +36,10 @@ void taskBME680(void * pvParameters)
     { // If new data is available
       if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
       {
-        sprintf(aTemperatureCString,  "%.1fC",    SensorBME680::getTemperature());
-        sprintf(aHumidityCString,     "%.1f%%",   SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET);
-        sprintf(aPressureCString,     "%.0fhPa",  SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET);
+        snprintf(aTemperatureCString,  8U,  "%.1fC",    SensorBME680::getTemperature());
+        snprintf(aHumidityCString,     8U,  "%.1f%%",   SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET);
+        snprintf(aPressureCString,     8U,  "%.0fhPa",  SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET);
+        snprintf(aIAQCString,          4U,  "%.0f",     SensorBME680::getIAQ());
         xSemaphoreGive( xMutexBME680CStrings );
       }
 
@@ -44,6 +49,11 @@ void taskBME680(void * pvParameters)
       Serial.print(aHumidityCString);
       Serial.print(" Pressure = ");
       Serial.print(aPressureCString);
+
+      Serial.print(" IAQ = ");
+      Serial.print(SensorBME680::getIAQ());
+      Serial.print(" IAQ ACC = ");
+      Serial.print(SensorBME680::getIAQaccuracy());
       Serial.println();
     } 
 
@@ -104,26 +114,41 @@ void setup()
               &xHandleBME680 ); // Used to pass out the created task's handle. 
 }
 
-  bool pressed;
+  bool pressed = false;
+  bool isOff = false;
   uint16_t x,y;
 
 void loop(void) 
 {
   pressed = tft.getTouch(&x, &y);
-
   if (pressed) 
   {
     Serial.print("x,y = ");
     Serial.print(x);
     Serial.print(",");
     Serial.println(y);
+
+    if(isOff)
+    {
+      tft.writecommand(0x29U);  //Display ON  TFT command
+      isOff = false;
+    }
+    else
+    {
+      tft.writecommand(0x28U);  //Display OFF TFT command
+      isOff = true;
+    }
+
   }
+
+
 
     if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
     {
       TextTemperature.setCString(aTemperatureCString);
       TextHumidity.setCString(aHumidityCString);
       TextPressure.setCString(aPressureCString);
+      TextIAQ.setCString(aIAQCString);
       
       xSemaphoreGive( xMutexBME680CStrings );
     }
@@ -131,6 +156,7 @@ void loop(void)
     TextTemperature.printText();
     TextHumidity.printText();
     TextPressure.printText();
+    TextIAQ.printText();
 
   delay(33);
 }
