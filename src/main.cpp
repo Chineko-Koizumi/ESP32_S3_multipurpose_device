@@ -26,6 +26,9 @@ char aIAQCString[] = "999";
 
 IAQText TextIAQ(&tft, MyCoordinates{0,0}, FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0);
 
+uint16_t tab[10000];
+TFT_eSprite tempSprite(&tft);
+
 //-------------END OF GLOBALS-----------------
 
 void taskBME680(void * pvParameters)
@@ -140,8 +143,6 @@ void loop(void)
     }
 
   }
-
-
 
     if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
     {
