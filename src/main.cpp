@@ -1,13 +1,20 @@
 #include <SPI.h>
+#include <WiFi.h>
+#include <SimpleFTPServer.h>
 
-#include "Horo.h"         //Background file
+#include "SD.h"
+#include "Horo.h"     //Default background file
 #include "SpritedText.h"
 #include "SensorBME680.h"
+#include "SdBmpReader.h"
+
+//SET_LOOP_TASK_STACK_SIZE( 156*1024 );
 
 //------------START OF GLOBALS-----------------
 
 //Multi threading globals 
 TaskHandle_t xHandleBME680              = NULL;
+TaskHandle_t xHandleFTP                 = NULL;
 SemaphoreHandle_t xMutexBME680CStrings  = NULL;
 
 //Screen globals
@@ -26,10 +33,49 @@ char aIAQCString[] = "999";
 
 IAQText TextIAQ(&tft, MyCoordinates{0,0}, FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0);
 
-uint16_t tab[10000];
-TFT_eSprite tempSprite(&tft);
+//FTP globals
+FtpServer ftpSrv;
 
 //-------------END OF GLOBALS-----------------
+
+void _callback(FtpOperation ftpOperation, unsigned int freeSpace, unsigned int totalSpace)
+{
+	Serial.print(">>>>>>>>>>>>>>> _callback " );
+	Serial.print(ftpOperation);
+	/* FTP_CONNECT,
+	 * FTP_DISCONNECT,
+	 * FTP_FREE_SPACE_CHANGE
+	 */
+	Serial.print(" ");
+	Serial.print(freeSpace);
+	Serial.print(" ");
+	Serial.println(totalSpace);
+
+	// freeSpace : totalSpace = x : 360
+
+	if (ftpOperation == FTP_CONNECT) Serial.println(F("CONNECTED"));
+	if (ftpOperation == FTP_DISCONNECT) Serial.println(F("DISCONNECTED"));
+};
+
+void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsigned int transferredSize)
+{
+        //Serial.printf("_transferCallback %d %s %u\n", ftpOperation, name, transferredSize);
+        /* FTP_UPLOAD_START = 0,
+        * FTP_UPLOAD = 1,
+        *
+        * FTP_DOWNLOAD_START = 2,
+        * FTP_DOWNLOAD = 3,
+        *
+        * FTP_TRANSFER_STOP = 4,
+        * FTP_DOWNLOAD_STOP = 4,
+        * FTP_UPLOAD_STOP = 4,
+        *
+        * FTP_TRANSFER_ERROR = 5,
+        * FTP_DOWNLOAD_ERROR = 5,
+        * FTP_UPLOAD_ERROR = 5
+        */
+
+};
 
 void taskBME680(void * pvParameters)
 {
@@ -68,6 +114,15 @@ void taskBME680(void * pvParameters)
   }
 }
 
+void taskFTP(void * pvParameters)
+{
+  while(true)
+  {
+    ftpSrv.handleFTP();
+    delay(5);
+  }
+}
+
 void initScreenAndTouch()
 {
   // Initialise TFT screen
@@ -83,6 +138,73 @@ void initScreenAndTouch()
   tft.println("Touch Initialised");
 }
 
+void reinitScreen()
+{
+  // Initialise TFT screen
+  tft.init();
+  tft.setTextSize(FONT_SIZE_2);
+  tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
+}
+
+void initSDMMC()
+{
+  pinMode(GPIO_NUM_2, INPUT_PULLUP);
+  pinMode(GPIO_NUM_15, INPUT_PULLUP);
+  pinMode(GPIO_NUM_14, INPUT_PULLUP);
+
+    if(!SD_MMC.begin("/sdcard", ONE_BIT_MODE, true))
+    {
+        Serial.println("Card Mount Failed");
+        return;
+    }
+    uint8_t cardType = SD_MMC.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD_MMC card attached");
+        return;
+    }
+
+    Serial.print("SD_MMC Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+    Serial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
+    Serial.println("SD opened!");
+}
+
+void initWiFi()
+{
+  WiFi.begin(SSID, PASSWORD);
+  Serial.println("");
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(SSID);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void initFTP()
+{
+    ftpSrv.setCallback(_callback);
+    ftpSrv.setTransferCallback(_transferCallback);
+    ftpSrv.begin("","");    //username, password for ftp.   (default 21, 50009 for PASV)
+}
+
 void setup() 
 {
   // Use serial port
@@ -94,6 +216,15 @@ void setup()
   SensorBME680::init(&tft);
   delay(100);
 
+  initSDMMC();
+  delay(100);
+
+  initWiFi();
+  delay(100);
+
+  initFTP();
+  delay(100);
+
   Serial.println("Software start in:");
   tft.println("Software start in:");
   for (size_t i = 5U; i > 0; i--)
@@ -103,22 +234,28 @@ void setup()
     delay(1000);
   }
   
+  //BMP temp("/sdcard/240x320/Fumo.bmp");
   //Fill screen with BG image
   tft.setSwapBytes(true); 
   tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
 
   xMutexBME680CStrings = xSemaphoreCreateMutex();
-
   xTaskCreate(taskBME680,       // Function that implements the task. 
               "BME680",         // Text name for the task. 
               STACK_SIZE_BME680,// Stack size in words, not bytes. 
               nullptr,          // Parameter passed into the task. 
-              3U,               // Priority at which the task is created. 
+              10U,               // Priority at which the task is created. 
               &xHandleBME680 ); // Used to pass out the created task's handle. 
+
+  xTaskCreate(taskFTP,
+              "FTP",
+              STACK_SIZE_FTP,
+              nullptr,
+              3u,
+              &xHandleFTP);
 }
 
   bool pressed = false;
-  bool isOff = false;
   uint16_t x,y;
 
 void loop(void) 
@@ -130,18 +267,7 @@ void loop(void)
     Serial.print(x);
     Serial.print(",");
     Serial.println(y);
-
-    if(isOff)
-    {
-      tft.writecommand(0x29U);  //Display ON  TFT command
-      isOff = false;
-    }
-    else
-    {
-      tft.writecommand(0x28U);  //Display OFF TFT command
-      isOff = true;
-    }
-
+    reinitScreen();
   }
 
     if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
