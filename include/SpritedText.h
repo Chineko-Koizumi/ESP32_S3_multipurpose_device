@@ -13,7 +13,9 @@ protected:
     char m_aText[MAX_TEXT_LENGTH];
 
     TFT_eSprite    m_ForegroundSprite;
-    MyCoordinates   m_SpritePos;
+    TFT_eSprite    m_BackgroundSprite;
+    TFT_eSprite    m_FinalSprite;
+    MyCoordinates  m_SpritePos;
 
     uint8_t m_FontSize;
     uint16_t m_FontFGColor;
@@ -61,6 +63,8 @@ public:
     ~SpritedText();
 
     void printText();
+    void CreateSprite();
+    void SetSpriteBackground(TFT_eSPI* ScreenPtr);
 };
 
 class IAQText : public SpritedTextBase
@@ -81,8 +85,7 @@ private:
 public:
     IAQText(TFT_eSPI* ScreenPtr, 
             const MyCoordinates& coords, 
-            uint8_t fontSize, 
-            uint16_t fontFGColor, 
+            uint8_t fontSize,  
             uint16_t fontBGColor, 
             uint16_t fontMaskColor);
     ~IAQText();

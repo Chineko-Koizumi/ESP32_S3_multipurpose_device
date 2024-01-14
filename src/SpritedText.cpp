@@ -9,6 +9,8 @@ SpritedTextBase::SpritedTextBase(   TFT_eSPI* ScreenPtr,
                                     uint16_t fontBGColor, 
                                     uint16_t fontMaskColor):
     m_ForegroundSprite(TFT_eSprite(ScreenPtr)),
+    m_BackgroundSprite(TFT_eSprite(ScreenPtr)),
+    m_FinalSprite(TFT_eSprite(ScreenPtr)),
     m_SpritePos(coords),
     m_FontSize(fontSize),
     m_FontFGColor(fontFGColor),
@@ -62,8 +64,6 @@ m_MaxTextLength(maxTextLength)
     m_CurrentWidth = m_MaxTextWidth;
     m_LastTextWidth = m_MaxTextWidth;
 
-    SpritedTextBase::m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-
     memset(m_aText, '\0', MAX_TEXT_LENGTH);
 }
 
@@ -72,10 +72,13 @@ SpritedText::~SpritedText(){}
 void SpritedText::printText()
 {
     removeSpriteEndingIfNecessery();
+
+    SpritedTextBase::m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
+
     SpritedTextBase::m_ForegroundSprite.drawString(m_aText, 0, 6);
-    SpritedTextBase::m_ForegroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x, 
-                                                    SpritedTextBase::m_SpritePos.y, 
-                                                    SpritedTextBase::m_FontMaskColor);
+    SpritedTextBase::m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, SpritedTextBase::m_FontBGColor);
+
+    SpritedTextBase::m_FinalSprite.pushSprite(SpritedTextBase::m_SpritePos.x, SpritedTextBase::m_SpritePos.y);                            
 }
 
 void SpritedText::removeSpriteEndingIfNecessery()
@@ -101,6 +104,26 @@ void SpritedText::removeSpriteEndingIfNecessery()
     m_LastTextWidth = m_CurrentWidth;
 }
 
+ void SpritedText::CreateSprite()//is needed to create this way (instead of in constructor) because ESP32 FreeRTOS implamentation does not allow large data alllocation before call_start_cpu()
+ {
+    SpritedTextBase::m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    SpritedTextBase::m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    SpritedTextBase::m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+
+    SpritedTextBase::m_ForegroundSprite.setColorDepth(16);
+    SpritedTextBase::m_BackgroundSprite.setColorDepth(16);
+     SpritedTextBase::m_FinalSprite.setColorDepth(16);
+ }
+
+void SpritedText::SetSpriteBackground(TFT_eSPI* ScreenPtr)
+{
+    ScreenPtr->readRect(SpritedTextBase::m_SpritePos.x, 
+                        SpritedTextBase::m_SpritePos.y,
+                        m_MaxTextWidth, 
+                        m_MaxTextHeight,
+                        (uint16_t*) m_BackgroundSprite.getPointer());
+}
+
 #pragma endregion SpritedText
 
 #pragma region IAQText
@@ -108,10 +131,9 @@ void SpritedText::removeSpriteEndingIfNecessery()
 IAQText::IAQText(   TFT_eSPI* ScreenPtr, 
                     const MyCoordinates& coords, 
                     uint8_t fontSize, 
-                    uint16_t fontFGColor, 
                     uint16_t fontBGColor, 
                     uint16_t fontMaskColor):
-SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor)
+SpritedTextBase(ScreenPtr, coords, fontSize, 0xFFFFU, fontBGColor, fontMaskColor)
 {
     m_aIAQColors[0] = 0x0720U; // 0-50      Light green --> Excellent:              Pure air
     m_aIAQColors[1] = 0x968AU; // 51-100    Green -->       Good:                   No irritation or impact on well-being

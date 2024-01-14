@@ -9,7 +9,7 @@
 #include "SensorBME680.h"
 #include "SdBmpReader.h"
 
-//SET_LOOP_TASK_STACK_SIZE( 156*1024 );
+//SET_LOOP_TASK_STACK_SIZE( 64*1024 );
 
 //------------START OF GLOBALS-----------------
 
@@ -26,13 +26,13 @@ char aTemperatureCString[]  = "99.99 C";
 char aHumidityCString[]     = "100.00%";
 char aPressureCString[]     = "1000hPa";
 
-SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0U);
-SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0U);
-SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0U);
+SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0x0841U, 0x0U, 0xFFF0U);
+SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0x0841U, 0x0U, 0xFFF0U);
+SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0x0841U, 0x0U, 0xFFF0U);
 
 char aIAQCString[] = "999";
 
-IAQText TextIAQ(&tft, MyCoordinates{0,0}, FONT_SIZE_1, 0x4FA4U, 0x0U, 0xFFF0);
+IAQText TextIAQ(&tft, MyCoordinates{0,0}, FONT_SIZE_1, 0x0U, 0xFFF0U);
 
 //FTP globals
 FtpServer ftpSrv;
@@ -83,9 +83,10 @@ void taskBME680(void * pvParameters)
   char m_aDataOutCString[100];
   FILE* dataOut;
   float temperature, humidity, pressure, IAQ;
+  uint8_t IAQACC;
 
   dataOut = fopen("/sdcard/data.csv", "w");
-  fprintf(dataOut, "Time,Temperatur,Humidity,Pressure,IAQ");
+  fprintf(dataOut, "Time,Temperature,Humidity,Pressure,IAQ");
 
   fclose(dataOut);
 
@@ -97,6 +98,7 @@ void taskBME680(void * pvParameters)
       humidity    = SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET;
       pressure    = SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET;
       IAQ         = SensorBME680::getIAQ();
+      IAQACC      = SensorBME680::getIAQaccuracy();
 
       if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
       {
@@ -114,23 +116,10 @@ void taskBME680(void * pvParameters)
         xSemaphoreGive( xMutexBME680CStrings );
       }
 
-      Serial.print("Temperature = ");
-      Serial.print(aTemperatureCString);
-      Serial.print(" Humidity = ");
-      Serial.print(aHumidityCString);
-      Serial.print(" Pressure = ");
-      Serial.print(aPressureCString);
-
-      Serial.print(" IAQ = ");
-      Serial.print(SensorBME680::getIAQ());
-      Serial.print(" IAQ ACC = ");
-      Serial.print(SensorBME680::getIAQaccuracy());
-      Serial.println();
+      Serial.printf("Temperature = %.1fC Humidity = %.1f%% Pressure = %.0fhPa IAQ = %.0f IAQ ACC = %u\n", temperature, humidity, pressure, IAQ, IAQACC);
     } 
 
-    Serial.print("BM680Stack: ");
-    Serial.print(uxTaskGetStackHighWaterMark(xHandleBME680));
-    Serial.println(" Bytes");
+    Serial.printf("Task BM680: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleBME680));
 
     delay(LOW_POWER_MODE_SENSOR_READ_PERIOD);
   }
@@ -181,19 +170,27 @@ void initSDMMC()
     }
     uint8_t cardType = SD_MMC.cardType();
 
-    if(cardType == CARD_NONE){
+    if(cardType == CARD_NONE)
+    {
         Serial.println("No SD_MMC card attached");
         return;
     }
 
     Serial.print("SD_MMC Card Type: ");
-    if(cardType == CARD_MMC){
+    if(cardType == CARD_MMC)
+    {
         Serial.println("MMC");
-    } else if(cardType == CARD_SD){
+    } 
+    else if(cardType == CARD_SD)
+    {
         Serial.println("SDSC");
-    } else if(cardType == CARD_SDHC){
+    } 
+    else if(cardType == CARD_SDHC)
+    {
         Serial.println("SDHC");
-    } else {
+    } 
+    else 
+    {
         Serial.println("UNKNOWN");
     }
 
@@ -205,26 +202,44 @@ void initSDMMC()
 void initWiFi()
 {
   WiFi.begin(SSID, PASSWORD);
-  Serial.println("");
+  Serial.printf("Connecting to WiFi\n");
+  tft.printf("Connecting to WiFi\n");
 
   // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) 
+  for (int i = 0;i<20 && WiFi.status() != WL_CONNECTED; ++i) 
   {
     delay(500);
     Serial.print(".");
+    tft.print(".");
   }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(SSID);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+
+  if(WiFi.status() == WL_CONNECTED)
+  {
+    Serial.printf("\nConnected to %s\nIP address:\n%s\n", SSID, WiFi.localIP().toString().c_str());
+    tft.printf("\nConnected to %s\nIP address:\n%s\n", SSID, WiFi.localIP().toString().c_str());
+  }
+  else
+  {
+    Serial.printf("WiFi disconected code:%d\n", WiFi.status());
+    tft.printf("WiFi disconected code:%d\n", WiFi.status());
+  }
+  
+
 }
 
 void initFTP()
 {
+  if(WiFi.status() == WL_CONNECTED)
+  {
     ftpSrv.setCallback(_callback);
     ftpSrv.setTransferCallback(_transferCallback);
     ftpSrv.begin("","");    //username, password for ftp.   (default 21, 50009 for PASV)
+  }
+  else
+  {
+    Serial.printf("FTP not initialized\n");
+    tft.printf("FTP not initialized\n");
+  }
 }
 
 void setup() 
@@ -261,6 +276,14 @@ void setup()
   tft.setSwapBytes(true); 
   tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
 
+  TextHumidity.CreateSprite();
+  TextTemperature.CreateSprite();
+  TextPressure.CreateSprite();
+
+  TextHumidity.SetSpriteBackground(&tft);
+  TextTemperature.SetSpriteBackground(&tft);
+  TextPressure.SetSpriteBackground(&tft);
+
   xMutexBME680CStrings = xSemaphoreCreateMutex();
   xTaskCreate(taskBME680,       // Function that implements the task. 
               "BME680",         // Text name for the task. 
@@ -285,10 +308,7 @@ void loop(void)
   pressed = tft.getTouch(&x, &y);
   if (pressed) 
   {
-    Serial.print("x,y = ");
-    Serial.print(x);
-    Serial.print(",");
-    Serial.println(y);
+    Serial.printf("x,y = %u,%u\n", x, y);
     reinitScreen();
   }
 
