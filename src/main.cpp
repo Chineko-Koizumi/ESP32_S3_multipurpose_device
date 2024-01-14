@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <SimpleFTPServer.h>
+#include <stdio.h>
 
 #include "SD.h"
 #include "Horo.h"     //Default background file
@@ -79,16 +80,37 @@ void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsi
 
 void taskBME680(void * pvParameters)
 {
+  char m_aDataOutCString[100];
+  FILE* dataOut;
+  float temperature, humidity, pressure, IAQ;
+
+  dataOut = fopen("/sdcard/data.csv", "w");
+  fprintf(dataOut, "Time,Temperatur,Humidity,Pressure,IAQ");
+
+  fclose(dataOut);
+
   while(true) 
   {
     if (SensorBME680::run()) 
     { // If new data is available
+      temperature = SensorBME680::getTemperature();
+      humidity    = SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET;
+      pressure    = SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET;
+      IAQ         = SensorBME680::getIAQ();
+
       if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
       {
-        snprintf(aTemperatureCString,  8U,  "%.1fC",    SensorBME680::getTemperature());
-        snprintf(aHumidityCString,     8U,  "%.1f%%",   SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET);
-        snprintf(aPressureCString,     8U,  "%.0fhPa",  SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET);
-        snprintf(aIAQCString,          4U,  "%.0f",     SensorBME680::getIAQ());
+        snprintf(aTemperatureCString,  8U,  "%.1fC",    temperature);
+        snprintf(aHumidityCString,     8U,  "%.1f%%",   humidity);
+        snprintf(aPressureCString,     8U,  "%.0fhPa",  pressure);
+        snprintf(aIAQCString,          4U,  "%.0f",     IAQ);
+
+        sprintf(m_aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
+
+        dataOut = fopen("/sdcard/data.csv", "a");
+        fprintf(dataOut, m_aDataOutCString);
+        fclose(dataOut);
+
         xSemaphoreGive( xMutexBME680CStrings );
       }
 
@@ -229,8 +251,8 @@ void setup()
   tft.println("Software start in:");
   for (size_t i = 5U; i > 0; i--)
   {
-      Serial.println(i);
-      tft.println(i);
+    Serial.println(i);
+    tft.println(i);
     delay(1000);
   }
   
