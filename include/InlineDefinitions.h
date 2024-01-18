@@ -23,7 +23,7 @@
 //----------Detector related consts--------------
 //-----------------------------------------------
 
-  static const uint16_t STACK_SIZE_BME680                   = 2500U;      // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
+  static const uint16_t STACK_SIZE_BME680                   = 4500U;      // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
   static const uint32_t STATE_SAVE_PERIOD	                  = 21600000U;  // 360 minutes - 4 times a day
   static const uint32_t LOW_POWER_MODE_SENSOR_READ_PERIOD	  = 3000;       //3 sec
   static const float    TEMPERATURE_OFFSET                  = 4.0f;
@@ -55,6 +55,15 @@ static const uint16_t STACK_SIZE_FTP = 5000U;      // Stack size for FTP task in
 
 static const char* SSID      = "";
 static const char* PASSWORD  = "";
+  
+//-----------------------------------------------
+
+//-----------------------------------------------
+//------------I2C related consts-----------------
+//-----------------------------------------------
+
+static const uint8_t I2C_SDA  = 1;
+static const uint8_t I2C_SCL  = 38;
   
 //-----------------------------------------------
 

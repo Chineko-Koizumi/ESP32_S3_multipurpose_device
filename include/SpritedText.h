@@ -22,6 +22,10 @@ protected:
     uint16_t m_FontBGColor;
     uint16_t m_FontMaskColor;
 
+    uint16_t m_MaxTextWidth;
+    uint16_t m_MaxTextHeight;
+    uint16_t m_MaxTextLength;
+
     uint16_t*    m_pImage;
 
 public:
@@ -42,10 +46,6 @@ public:
 class SpritedText : public SpritedTextBase
 {
 private:
-    uint16_t m_MaxTextWidth;
-    uint16_t m_MaxTextHeight;
-    uint16_t m_MaxTextLength;
-
     uint16_t m_LastTextWidth;
     uint16_t m_CurrentWidth;
 
@@ -74,9 +74,6 @@ private:
     static const uint8_t IAQ_COLOR_COUNT          = 8U; 
     static const uint8_t IAQ_LEVEL_STEP_VALUE     = 50U; 
 
-    uint16_t m_TextWidth;
-    uint16_t m_TextHeight;
-
     uint16_t m_IAQReading;
     uint8_t m_IAQColorIndex;
 
@@ -91,6 +88,8 @@ public:
     ~IAQText();
 
     void printText();
+    void CreateSprite();
+    void SetSpriteBackground(TFT_eSPI* ScreenPtr);
 };
 
 #endif

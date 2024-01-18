@@ -46,18 +46,18 @@ SpritedText::SpritedText(   TFT_eSPI* ScreenPtr,
                             uint16_t fontFGColor, 
                             uint16_t fontBGColor, 
                             uint16_t fontMaskColor):
-SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor),
-m_MaxTextLength(maxTextLength)
+SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskColor)
 {
     for (size_t i = 0; (i < MAX_TEXT_LENGTH - 1)/* -1 beacause of '\0' */ && (i < maxTextLength); i++)
     {
         m_aText[i] = 'X';
         m_aText[i+1] = '\0';
     }
-    SpritedTextBase::m_ForegroundSprite.setTextSize(SpritedTextBase::m_FontSize);
-    SpritedTextBase::m_ForegroundSprite.setTextColor(SpritedTextBase::m_FontFGColor, SpritedTextBase::m_FontBGColor, false);
-    SpritedTextBase::m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
+    m_ForegroundSprite.setTextSize(m_FontSize);
+    m_ForegroundSprite.setTextColor(m_FontFGColor, m_FontBGColor, false);
+    m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
 
+    m_MaxTextLength = maxTextLength;
     m_MaxTextWidth  = m_ForegroundSprite.textWidth(m_aText);
     m_MaxTextHeight = m_ForegroundSprite.fontHeight();
 
@@ -73,52 +73,44 @@ void SpritedText::printText()
 {
     removeSpriteEndingIfNecessery();
 
-    SpritedTextBase::m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
+    m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
-    SpritedTextBase::m_ForegroundSprite.drawString(m_aText, 0, 6);
-    SpritedTextBase::m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, SpritedTextBase::m_FontBGColor);
+    m_ForegroundSprite.drawString(m_aText, 0, 6);
+    m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
 
-    SpritedTextBase::m_FinalSprite.pushSprite(SpritedTextBase::m_SpritePos.x, SpritedTextBase::m_SpritePos.y);                            
+    m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y);                            
 }
 
 void SpritedText::removeSpriteEndingIfNecessery()
 {
-    m_CurrentWidth = SpritedTextBase::m_ForegroundSprite.textWidth(m_aText);
+    m_CurrentWidth = m_ForegroundSprite.textWidth(m_aText);
     
     if(m_LastTextWidth > m_CurrentWidth)
     {
-
-        /* SpritedTextBase::m_BackgroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x + m_CurrentWidth, 
-                                                SpritedTextBase::m_SpritePos.y,
-                                                SpritedTextBase::m_SpritePos.x + m_CurrentWidth, 
-                                                SpritedTextBase::m_SpritePos.y,
-                                                m_LastTextWidth - m_CurrentWidth, 
-                                                m_MaxTextHeight); */ //for some reason this does not work
-
-        SpritedTextBase::m_ForegroundSprite.fillRect(   m_CurrentWidth, 
-                                                        0, 
-                                                        m_LastTextWidth - m_CurrentWidth, 
-                                                        m_MaxTextHeight, 
-                                                        SpritedTextBase::m_FontBGColor);
+        m_ForegroundSprite.fillRect(m_CurrentWidth, 
+                                    0, 
+                                    m_LastTextWidth - m_CurrentWidth, 
+                                    m_MaxTextHeight, 
+                                    m_FontMaskColor);
     }
     m_LastTextWidth = m_CurrentWidth;
 }
 
  void SpritedText::CreateSprite()//is needed to create this way (instead of in constructor) because ESP32 FreeRTOS implamentation does not allow large data alllocation before call_start_cpu()
  {
-    SpritedTextBase::m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-    SpritedTextBase::m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-    SpritedTextBase::m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
 
-    SpritedTextBase::m_ForegroundSprite.setColorDepth(16);
-    SpritedTextBase::m_BackgroundSprite.setColorDepth(16);
-     SpritedTextBase::m_FinalSprite.setColorDepth(16);
+    m_ForegroundSprite.setColorDepth(16);
+    m_BackgroundSprite.setColorDepth(16);
+    m_FinalSprite.setColorDepth(16);
  }
 
 void SpritedText::SetSpriteBackground(TFT_eSPI* ScreenPtr)
 {
-    ScreenPtr->readRect(SpritedTextBase::m_SpritePos.x, 
-                        SpritedTextBase::m_SpritePos.y,
+    ScreenPtr->readRect(m_SpritePos.x, 
+                        m_SpritePos.y,
                         m_MaxTextWidth, 
                         m_MaxTextHeight,
                         (uint16_t*) m_BackgroundSprite.getPointer());
@@ -144,19 +136,17 @@ SpritedTextBase(ScreenPtr, coords, fontSize, 0xFFFFU, fontBGColor, fontMaskColor
     m_aIAQColors[6] = 0x9869U; // 301-351   Purple -->      Severely polluted:      More severe health issue possible if harmfull VOCs are present
     m_aIAQColors[7] = 0x6180U; // >351      Brown -->       Extremely polluted:     Run!!! 
 
-    SpritedTextBase::m_aText[0] = '9';
-    SpritedTextBase::m_aText[1] = '9';
-    SpritedTextBase::m_aText[2] = '9';
-    SpritedTextBase::m_aText[3] = '\0';
+    m_aText[0] = '9';
+    m_aText[1] = '9';
+    m_aText[2] = '9';
+    m_aText[3] = '\0';
 
-    SpritedTextBase::m_ForegroundSprite.setTextSize(SpritedTextBase::m_FontSize);
-    SpritedTextBase::m_ForegroundSprite.setTextColor(SpritedTextBase::m_FontFGColor, SpritedTextBase::m_FontBGColor, false);
-    SpritedTextBase::m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
+    m_ForegroundSprite.setTextSize(m_FontSize);
+    m_ForegroundSprite.setTextColor(m_FontFGColor, m_FontMaskColor, false);
+    m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
 
-    m_TextWidth     = m_ForegroundSprite.textWidth(m_aText);
-    m_TextHeight    = m_ForegroundSprite.fontHeight();
-
-    SpritedTextBase::m_ForegroundSprite.createSprite(m_TextWidth, m_TextHeight);
+    m_MaxTextWidth     = m_ForegroundSprite.textWidth(m_aText);
+    m_MaxTextHeight    = m_ForegroundSprite.fontHeight();
 }
 
 IAQText::~IAQText()
@@ -166,23 +156,40 @@ IAQText::~IAQText()
 
 void IAQText::printText()
 {
-    m_IAQReading = atoi(SpritedTextBase::m_aText);
-    
+    m_IAQReading = atoi(m_aText);
     m_IAQColorIndex = m_IAQReading / IAQ_LEVEL_STEP_VALUE;
 
-    if( m_IAQColorIndex > (IAQ_COLOR_COUNT - 1) )
-    {
-       m_IAQColorIndex = IAQ_COLOR_COUNT - 1;
-    }
+    if( m_IAQColorIndex > (IAQ_COLOR_COUNT - 1) ) m_IAQColorIndex = IAQ_COLOR_COUNT - 1;
 
-    SpritedTextBase::m_FontFGColor = m_aIAQColors[m_IAQColorIndex];
+    m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
-    SpritedTextBase::m_ForegroundSprite.setTextColor(SpritedTextBase::m_FontFGColor, SpritedTextBase::m_FontBGColor, false);
-    SpritedTextBase::m_ForegroundSprite.fillRect(0, 0, m_TextWidth, m_TextHeight, SpritedTextBase::m_FontBGColor);
-    SpritedTextBase::m_ForegroundSprite.drawString(SpritedTextBase::m_aText, 0, 6);
-    SpritedTextBase::m_ForegroundSprite.pushSprite( SpritedTextBase::m_SpritePos.x, 
-                                                    SpritedTextBase::m_SpritePos.y, 
-                                                    SpritedTextBase::m_FontMaskColor);
+    m_FontFGColor = m_aIAQColors[m_IAQColorIndex];
+    m_ForegroundSprite.fillRect(0, 0, m_MaxTextWidth, m_MaxTextHeight, m_FontMaskColor);
+    m_ForegroundSprite.setTextColor(m_FontFGColor);    
+    m_ForegroundSprite.drawString(m_aText, 0, 0);
+    m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
+
+    m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y); 
+}
+
+void IAQText::CreateSprite()
+{
+    m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+    m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
+
+    m_ForegroundSprite.setColorDepth(16);
+    m_BackgroundSprite.setColorDepth(16);
+    m_FinalSprite.setColorDepth(16);
+}
+
+void IAQText::SetSpriteBackground(TFT_eSPI* ScreenPtr)
+{
+    ScreenPtr->readRect(SpritedTextBase::m_SpritePos.x, 
+                SpritedTextBase::m_SpritePos.y,
+                m_MaxTextWidth, 
+                m_MaxTextHeight,
+                (uint16_t*) m_BackgroundSprite.getPointer());
 }
 
 #pragma endregion IAQText

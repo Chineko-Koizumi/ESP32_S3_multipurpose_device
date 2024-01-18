@@ -9,7 +9,7 @@
 #include "SensorBME680.h"
 #include "SdBmpReader.h"
 
-//SET_LOOP_TASK_STACK_SIZE( 64*1024 );
+//SET_LOOP_TASK_STACK_SIZE( 240*1024 );
 
 //------------START OF GLOBALS-----------------
 
@@ -26,13 +26,13 @@ char aTemperatureCString[]  = "99.99 C";
 char aHumidityCString[]     = "100.00%";
 char aPressureCString[]     = "1000hPa";
 
-SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0x0841U, 0x0U, 0xFFF0U);
-SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0x0841U, 0x0U, 0xFFF0U);
-SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0x0841U, 0x0U, 0xFFF0U);
+SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
 
 char aIAQCString[] = "999";
 
-IAQText TextIAQ(&tft, MyCoordinates{0,0}, FONT_SIZE_1, 0x0U, 0xFFF0U);
+IAQText TextIAQ(&tft, MyCoordinates{5,5}, FONT_SIZE_1, 0x0U, 0xFFF0U);
 
 //FTP globals
 FtpServer ftpSrv;
@@ -75,7 +75,7 @@ void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsi
         * FTP_DOWNLOAD_ERROR = 5,
         * FTP_UPLOAD_ERROR = 5
         */
-
+      Serial.printf("Task FTP: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleBME680));
 };
 
 void taskBME680(void * pvParameters)
@@ -159,10 +159,8 @@ void reinitScreen()
 
 void initSDMMC()
 {
-  pinMode(GPIO_NUM_2, INPUT_PULLUP);
-  pinMode(GPIO_NUM_15, INPUT_PULLUP);
-  pinMode(GPIO_NUM_14, INPUT_PULLUP);
 
+  SD_MMC.setPins(GPIO_NUM_14, GPIO_NUM_15, GPIO_NUM_2);
     if(!SD_MMC.begin("/sdcard", ONE_BIT_MODE, true))
     {
         Serial.println("Card Mount Failed");
@@ -279,10 +277,12 @@ void setup()
   TextHumidity.CreateSprite();
   TextTemperature.CreateSprite();
   TextPressure.CreateSprite();
+  TextIAQ.CreateSprite();
 
   TextHumidity.SetSpriteBackground(&tft);
   TextTemperature.SetSpriteBackground(&tft);
   TextPressure.SetSpriteBackground(&tft);
+  TextIAQ.SetSpriteBackground(&tft);
 
   xMutexBME680CStrings = xSemaphoreCreateMutex();
   xTaskCreate(taskBME680,       // Function that implements the task. 
@@ -327,7 +327,7 @@ void loop(void)
     TextPressure.printText();
     TextIAQ.printText();
 
-  delay(33);
+  delay(250);
 }
 
 // Code to run a screen calibration, not needed when calibration values set in setup()

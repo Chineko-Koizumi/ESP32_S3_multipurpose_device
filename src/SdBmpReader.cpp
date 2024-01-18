@@ -14,6 +14,7 @@ void BMP::read(const char *fname)
         if(m_FileHeader.file_type != 0x4D42) 
         {
             Serial.println("Error! Unrecognized file format.");
+            inp.close();
             return;
         }
         inp.read((char*)&m_BmpInfoHeader, sizeof(m_BmpInfoHeader));
@@ -32,6 +33,7 @@ void BMP::read(const char *fname)
             {
                 Serial.printf("Error! The file %s does not seem to contain bit mask information \n", fname);
                 Serial.println("Error! Unrecognized file format.");
+                inp.close();
                 return;
             }
         }
@@ -56,6 +58,7 @@ void BMP::read(const char *fname)
         if (m_BmpInfoHeader.height < 0) 
         {
             Serial.println("The program can treat only BMP images with the origin in the bottom left corner!");
+            inp.close();
             return;
         }
         m_DataCount = m_BmpInfoHeader.width * m_BmpInfoHeader.height * m_BmpInfoHeader.bit_count / 8;
@@ -87,8 +90,12 @@ void BMP::read(const char *fname)
     else 
     {
         Serial.println("Unable to open the input image file.");
+        inp.close();
         return;
     }
+
+    inp.close();
+    return;
 }
 
 // Add 1 to the m_RowStride until it is divisible with align_stride
