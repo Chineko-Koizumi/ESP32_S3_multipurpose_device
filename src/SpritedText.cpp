@@ -75,7 +75,7 @@ void SpritedText::printText()
 
     m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
-    m_ForegroundSprite.drawString(m_aText, 0, 6);
+    m_ForegroundSprite.drawString(m_aText, 0, 0);
     m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
 
     m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y);                            

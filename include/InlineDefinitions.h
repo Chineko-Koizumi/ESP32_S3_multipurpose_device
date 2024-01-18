@@ -14,8 +14,12 @@
   static const uint8_t FONT_SIZE_2       = 2U;
   static const uint8_t FONT_SIZE_3       = 3U;
   static const uint8_t FONT_SIZE_4       = 4U;
+
   static const uint8_t MAX_LINES_OF_TEXT = 19U; // Maximal value of lines to show on screen
   static const uint8_t MAX_TEXT_LENGTH   = 20U; //19 + '/0' characters is maximal for one line in 2x font size
+
+  static const bool CUSTOM_FONT   = false;
+  static const bool DEFAULT_FONT  = true;
 
 //-----------------------------------------------
 
@@ -23,7 +27,7 @@
 //----------Detector related consts--------------
 //-----------------------------------------------
 
-  static const uint16_t STACK_SIZE_BME680                   = 4500U;      // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
+  static const uint16_t STACK_SIZE_BME680                   = 5000U;      // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
   static const uint32_t STATE_SAVE_PERIOD	                  = 21600000U;  // 360 minutes - 4 times a day
   static const uint32_t LOW_POWER_MODE_SENSOR_READ_PERIOD	  = 3000;       //3 sec
   static const float    TEMPERATURE_OFFSET                  = 4.0f;
@@ -38,6 +42,23 @@
 //-----------------------------------------------
 
 static const bool ONE_BIT_MODE = true;
+  
+//-----------------------------------------------
+
+//-----------------------------------------------
+//-------------RTC related consts----------------
+//-----------------------------------------------
+
+static const uint16_t STACK_SIZE_RTC  = 5000U;      // Stack size for FTP task in ESP32 words (4 bytes per word)
+static const uint16_t ONE_SECOND_TICK = 999U;       // 999 milis to ensure at least one update per second
+  
+//-----------------------------------------------
+
+//-----------------------------------------------
+//-------------BMP related consts----------------
+//-----------------------------------------------
+
+static const uint16_t STACK_SIZE_BMP = 39650U;      // Stack size for FTP task in ESP32 words (4 bytes per word)
   
 //-----------------------------------------------
 
@@ -107,6 +128,13 @@ struct BMPColorHeader
   uint32_t alpha_mask{ 0xff000000 };       // Bit mask for the alpha channel
   uint32_t color_space_type{ 0x73524742 }; // Default "sRGB" (0x73524742)
   uint32_t unused[16]{ 0 };                // Unused data for sRGB color space
+}  __attribute__((packed));
+
+struct BMPPathUpdate
+{
+  bool newData;
+  char path[50];
+
 }  __attribute__((packed));
 
 #endif

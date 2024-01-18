@@ -13,7 +13,6 @@ const uint8_t SensorBME680::bsec_config_iaq[IAQ_CONFIG_ITEMS_COUNT] = {
 
 void SensorBME680::init(TFT_eSPI* ScreenPtr)
 {
-    Wire.setPins(I2C_SDA, I2C_SCL);
     iaqSensor.begin(BME68X_I2C_ADDR_HIGH, Wire);
     String LibraryVersion = "BSEC library version" + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
     Serial.println(LibraryVersion);

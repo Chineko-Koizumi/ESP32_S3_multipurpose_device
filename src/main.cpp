@@ -8,27 +8,37 @@
 #include "SpritedText.h"
 #include "SensorBME680.h"
 #include "SdBmpReader.h"
+#include "DFRobot_SD3031.h"
 
 //SET_LOOP_TASK_STACK_SIZE( 240*1024 );
 
 //------------START OF GLOBALS-----------------
 
 //Multi threading globals 
-TaskHandle_t xHandleBME680              = NULL;
-TaskHandle_t xHandleFTP                 = NULL;
-SemaphoreHandle_t xMutexBME680CStrings  = NULL;
+TaskHandle_t xHandleBME680  = NULL;
+TaskHandle_t xHandleRTC     = NULL;
+TaskHandle_t xHandleFTP     = NULL;
+
+SemaphoreHandle_t xMutexBME680CStrings    = NULL;
+SemaphoreHandle_t xMutexTimeDateCStrings  = NULL;
+
 
 //Screen globals
 TFT_eSPI tft  = TFT_eSPI();
+
+//RTC globals
+DFRobot_SD3031 rtc;
 
 //Text on display globals
 char aTemperatureCString[]  = "99.99 C";
 char aHumidityCString[]     = "100.00%";
 char aPressureCString[]     = "1000hPa";
+char aTimeDateCString[]     = "9999/99/99";
 
-SpritedText TextTemperature(&tft, MyCoordinates{5,170}, strlen(aTemperatureCString),  FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextHumidity(   &tft, MyCoordinates{5,220}, strlen(aHumidityCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextPressure(   &tft, MyCoordinates{5,270}, strlen(aPressureCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextTemperature(&tft, MyCoordinates{5,175},   strlen(aTemperatureCString),  FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextHumidity(   &tft, MyCoordinates{5,225},   strlen(aHumidityCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextPressure(   &tft, MyCoordinates{5,275},   strlen(aPressureCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextTimeDate(   &tft, MyCoordinates{70,5},    strlen(aTimeDateCString),     FONT_SIZE_1, 0xF800,  0x0U, 0x0U);
 
 char aIAQCString[] = "999";
 
@@ -75,7 +85,7 @@ void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsi
         * FTP_DOWNLOAD_ERROR = 5,
         * FTP_UPLOAD_ERROR = 5
         */
-      Serial.printf("Task FTP: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleBME680));
+      Serial.printf("Task FTP: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleFTP));
 };
 
 void taskBME680(void * pvParameters)
@@ -125,6 +135,40 @@ void taskBME680(void * pvParameters)
   }
 }
 
+void taskRTC(void * pvParameters)
+{    
+  sTimeData_t sTime;
+
+  while(true)
+  {
+    sTime = rtc.getRTCTime();
+
+    if( xSemaphoreTake( xMutexTimeDateCStrings, portMAX_DELAY ) == pdTRUE )
+    {
+      snprintf(aTimeDateCString,  11U,  "%u/%u/%u\n", sTime.year, sTime.month, sTime.day);
+
+      xSemaphoreGive( xMutexTimeDateCStrings);
+    }
+
+    Serial.print(sTime.year, DEC);//year
+    Serial.print('/');
+    Serial.print(sTime.month, DEC);//month
+    Serial.print('/');
+    Serial.print(sTime.day, DEC);//day
+    Serial.print(" (");
+    Serial.print(sTime.week);//week
+    Serial.print(") ");
+    Serial.print(sTime.hour, DEC);//hour
+    Serial.print(':');
+    Serial.print(sTime.minute, DEC);//minute
+    Serial.print(':');
+    Serial.print(sTime.second, DEC);//second
+    Serial.println(' ');
+
+    delay(ONE_SECOND_TICK);
+  }
+}
+
 void taskFTP(void * pvParameters)
 {
   while(true)
@@ -147,6 +191,42 @@ void initScreenAndTouch()
 
   Serial.println("Touch Initialised");
   tft.println("Touch Initialised");
+}
+
+void initRTC()
+{
+  Serial.println("RTC starting ");
+  tft.println("RTC starting ");
+  for (int i = 0;i<20 && rtc.begin() != 0; ++i) 
+  {
+    Serial.print(".");
+    tft.print(".");
+    delay(500);
+  }
+
+  if(rtc.begin() == 0)
+  {
+    Serial.println("RTC started ");
+    tft.println("RTC started ");
+  }
+  else
+  {
+    Serial.println("RTC failed ");
+    tft.println("RTC failed ");
+  }
+  //rtc.setHourSystem(rtc.e24hours);//Set display format only needed for first time after new battery is added
+  //rtc.setTime(2024,1,18,16,55,0);//Initialize time
+}
+
+void initI2C()
+{
+  Wire.setPins(I2C_SDA, I2C_SCL);
+
+  SensorBME680::init(&tft);
+  delay(100);
+
+  initRTC();
+  delay(100);
 }
 
 void reinitScreen()
@@ -248,7 +328,7 @@ void setup()
   initScreenAndTouch();
   delay(100);
 
-  SensorBME680::init(&tft);
+  initI2C();
   delay(100);
 
   initSDMMC();
@@ -277,11 +357,13 @@ void setup()
   TextHumidity.CreateSprite();
   TextTemperature.CreateSprite();
   TextPressure.CreateSprite();
+  TextTimeDate.CreateSprite();
   TextIAQ.CreateSprite();
 
   TextHumidity.SetSpriteBackground(&tft);
   TextTemperature.SetSpriteBackground(&tft);
   TextPressure.SetSpriteBackground(&tft);
+  TextTimeDate.SetSpriteBackground(&tft);
   TextIAQ.SetSpriteBackground(&tft);
 
   xMutexBME680CStrings = xSemaphoreCreateMutex();
@@ -291,6 +373,14 @@ void setup()
               nullptr,          // Parameter passed into the task. 
               10U,               // Priority at which the task is created. 
               &xHandleBME680 ); // Used to pass out the created task's handle. 
+
+  xMutexTimeDateCStrings = xSemaphoreCreateMutex();
+  xTaskCreate(taskRTC,
+              "RTC",
+              STACK_SIZE_RTC,
+              nullptr,
+              10u,
+              &xHandleRTC);
 
   xTaskCreate(taskFTP,
               "FTP",
@@ -318,14 +408,22 @@ void loop(void)
       TextHumidity.setCString(aHumidityCString);
       TextPressure.setCString(aPressureCString);
       TextIAQ.setCString(aIAQCString);
-      
+    
       xSemaphoreGive( xMutexBME680CStrings );
+    }
+
+    if( xSemaphoreTake( xMutexTimeDateCStrings, portMAX_DELAY ) == pdTRUE )
+    {
+      TextTimeDate.setCString(aTimeDateCString);
+
+      xSemaphoreGive( xMutexTimeDateCStrings);
     }
 
     TextTemperature.printText();
     TextHumidity.printText();
     TextPressure.printText();
     TextIAQ.printText();
+    TextTimeDate.printText();
 
   delay(250);
 }
@@ -374,4 +472,25 @@ void touch_calibrate()
 
   delay(4000);
 }
+
+sTimeData_t sTime;
+  sTime = rtc.getRTCTime();
+
+  Serial.printf("%u-%u-%u\n", sTime.year, sTime.month, sTime.day);
+
+  Serial.print(sTime.year, DEC);//year
+  Serial.print('/');
+  Serial.print(sTime.month, DEC);//month
+  Serial.print('/');
+  Serial.print(sTime.day, DEC);//day
+  Serial.print(" (");
+  Serial.print(sTime.week);//week
+  Serial.print(") ");
+  Serial.print(sTime.hour, DEC);//hour
+  Serial.print(':');
+  Serial.print(sTime.minute, DEC);//minute
+  Serial.print(':');
+  Serial.print(sTime.second, DEC);//second
+  Serial.println(' ');
+
 */
