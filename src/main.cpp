@@ -8,6 +8,7 @@
 #include "SD.h"
 #include "Horo.h"     //Default background file
 #include "SpritedText.h"
+#include "SpritedTextSubject.h"
 #include "SensorBME680.h"
 #include "SdBmpReader.h"
 #include "DFRobot_SD3031.h"
@@ -38,6 +39,8 @@ char aTemperatureCString[]  = "99.99 C";
 char aHumidityCString[]     = "100.00%";
 char aPressureCString[]     = "1000hPa";
 char aTimeDateCString[]     = "9999/99/99";
+
+SpritedTextSubject spritedTextSubject;
 
 SpritedText TextTemperature(&tft, MyCoordinates{5,175},   strlen(aTemperatureCString),  FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
 SpritedText TextHumidity(   &tft, MyCoordinates{5,225},   strlen(aHumidityCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
@@ -245,6 +248,10 @@ void reinitScreen()
   tft.init();
   tft.setTextSize(FONT_SIZE_2);
   tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
+
+  spritedTextSubject.NotifysetSpriteBackground(&tft);
+  spritedTextSubject.NotifyForcePrintText();
+
 }
 
 void initSDMMC()
@@ -369,17 +376,14 @@ void setup()
   tft.setSwapBytes(true); 
   tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
 
-  TextHumidity.CreateSprite();
-  TextTemperature.CreateSprite();
-  TextPressure.CreateSprite();
-  TextTimeDate.CreateSprite();
-  TextIAQ.CreateSprite();
+  spritedTextSubject.Attach(&TextHumidity);
+  spritedTextSubject.Attach(&TextTemperature);
+  spritedTextSubject.Attach(&TextPressure);
+  spritedTextSubject.Attach(&TextTimeDate);
+  spritedTextSubject.Attach(&TextIAQ);
 
-  TextHumidity.SetSpriteBackground(&tft);
-  TextTemperature.SetSpriteBackground(&tft);
-  TextPressure.SetSpriteBackground(&tft);
-  TextTimeDate.SetSpriteBackground(&tft);
-  TextIAQ.SetSpriteBackground(&tft);
+  spritedTextSubject.NotifyCreateSprite();
+  spritedTextSubject.NotifysetSpriteBackground(&tft);
 
   xMutexBME680CStrings = xSemaphoreCreateMutex();
   xTaskCreate(taskBME680,       // Function that implements the task. 
@@ -434,11 +438,7 @@ void loop(void)
       xSemaphoreGive( xMutexTimeDateCStrings);
     }
 
-    TextTemperature.printText();
-    TextHumidity.printText();
-    TextPressure.printText();
-    TextIAQ.printText();
-    TextTimeDate.printText();
+  spritedTextSubject.NotifyPrintText();
 
   delay(250);
 }

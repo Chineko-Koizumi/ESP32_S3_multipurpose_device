@@ -4,10 +4,12 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>      // Hardware-specific library
 
+#include "ISpritedTextObserver.h"
+
 #include "InlineDefinitions.h"
 #include "FreeFonts.h"
 
-class SpritedTextBase
+class SpritedTextBase : public ISpritedTextObserver
 {
 protected:
     char m_aText[MAX_TEXT_LENGTH];
@@ -50,7 +52,7 @@ private:
     uint16_t m_LastTextWidth;
     uint16_t m_CurrentWidth;
 
-    void removeSpriteEndingIfNecessery();
+    void RemoveSpriteEndingIfNecessery();
 
 public:
     SpritedText(TFT_eSPI* ScreenPtr, 
@@ -63,9 +65,10 @@ public:
 
     ~SpritedText();
 
-    void printText();
-    void CreateSprite();
-    void SetSpriteBackground(TFT_eSPI* ScreenPtr);
+    void PrintText()                                override;
+    void ForcePrintText()                           override;
+    void CreateSprite()                             override;
+    void setSpriteBackground(TFT_eSPI* ScreenPtr)   override;
 };
 
 class IAQText : public SpritedTextBase
@@ -88,9 +91,10 @@ public:
             uint16_t fontMaskColor);
     ~IAQText();
 
-    void printText();
-    void CreateSprite();
-    void SetSpriteBackground(TFT_eSPI* ScreenPtr);
+    void PrintText()                                override;
+    void ForcePrintText()                           override;
+    void CreateSprite()                             override;
+    void setSpriteBackground(TFT_eSPI* ScreenPtr)   override;
 };
 
 #endif

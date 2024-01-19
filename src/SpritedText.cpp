@@ -74,11 +74,11 @@ SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskC
 
 SpritedText::~SpritedText(){}
 
-void SpritedText::printText()
+void SpritedText::PrintText()
 {
     if(strcmp(m_aLastText, m_aText))
     {
-        removeSpriteEndingIfNecessery();
+        RemoveSpriteEndingIfNecessery();
 
         m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
@@ -91,7 +91,18 @@ void SpritedText::printText()
     }                            
 }
 
-void SpritedText::removeSpriteEndingIfNecessery()
+void SpritedText::ForcePrintText()
+{
+    m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
+
+    m_ForegroundSprite.fillRect(0, 0, m_MaxTextWidth, m_MaxTextHeight, m_FontMaskColor);
+    m_ForegroundSprite.drawString(m_aText, 0, 0);
+    m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
+
+    m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y);
+}
+
+void SpritedText::RemoveSpriteEndingIfNecessery()
 {
     m_CurrentWidth = m_ForegroundSprite.textWidth(m_aText);
     
@@ -117,7 +128,7 @@ void SpritedText::removeSpriteEndingIfNecessery()
     m_FinalSprite.setColorDepth(16);
  }
 
-void SpritedText::SetSpriteBackground(TFT_eSPI* ScreenPtr)
+void SpritedText::setSpriteBackground(TFT_eSPI* ScreenPtr)
 {
     ScreenPtr->readRect(m_SpritePos.x, 
                         m_SpritePos.y,
@@ -169,7 +180,7 @@ IAQText::~IAQText()
     
 }
 
-void IAQText::printText()
+void IAQText::PrintText()
 {
     if(strcmp(m_aLastText, m_aText))
     {
@@ -192,6 +203,24 @@ void IAQText::printText()
     }
 }
 
+void IAQText::ForcePrintText()
+{
+        m_IAQReading = atoi(m_aText);
+        m_IAQColorIndex = m_IAQReading / IAQ_LEVEL_STEP_VALUE;
+
+        if( m_IAQColorIndex > (IAQ_COLOR_COUNT - 1) ) m_IAQColorIndex = IAQ_COLOR_COUNT - 1;
+
+        m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
+
+        m_FontFGColor = m_aIAQColors[m_IAQColorIndex];
+        m_ForegroundSprite.fillRect(0, 0, m_MaxTextWidth, m_MaxTextHeight, m_FontMaskColor);
+        m_ForegroundSprite.setTextColor(m_FontFGColor);    
+        m_ForegroundSprite.drawString(m_aText, 0, 0);
+        m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
+
+        m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y); 
+}
+
 void IAQText::CreateSprite()
 {
     m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
@@ -203,7 +232,7 @@ void IAQText::CreateSprite()
     m_FinalSprite.setColorDepth(16);
 }
 
-void IAQText::SetSpriteBackground(TFT_eSPI* ScreenPtr)
+void IAQText::setSpriteBackground(TFT_eSPI* ScreenPtr)
 {
     ScreenPtr->readRect(SpritedTextBase::m_SpritePos.x, 
                 SpritedTextBase::m_SpritePos.y,
