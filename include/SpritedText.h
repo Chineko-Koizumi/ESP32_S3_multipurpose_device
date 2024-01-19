@@ -11,6 +11,7 @@ class SpritedTextBase
 {
 protected:
     char m_aText[MAX_TEXT_LENGTH];
+    char m_aLastText[MAX_TEXT_LENGTH];
 
     TFT_eSprite    m_ForegroundSprite;
     TFT_eSprite    m_BackgroundSprite;

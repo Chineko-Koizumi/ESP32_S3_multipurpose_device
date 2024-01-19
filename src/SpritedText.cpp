@@ -50,9 +50,13 @@ SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskC
 {
     for (size_t i = 0; (i < MAX_TEXT_LENGTH - 1)/* -1 beacause of '\0' */ && (i < maxTextLength); i++)
     {
-        m_aText[i] = 'X';
-        m_aText[i+1] = '\0';
+        m_aText[i]          = 'X';
+        m_aText[i+1]        = '\0';
+
+        m_aLastText[i]      = 'X';
+        m_aLastText[i+1]    = '\0';
     }
+
     m_ForegroundSprite.setTextSize(m_FontSize);
     m_ForegroundSprite.setTextColor(m_FontFGColor, m_FontBGColor, false);
     m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
@@ -64,21 +68,27 @@ SpritedTextBase(ScreenPtr, coords, fontSize, fontFGColor, fontBGColor, fontMaskC
     m_CurrentWidth = m_MaxTextWidth;
     m_LastTextWidth = m_MaxTextWidth;
 
-    memset(m_aText, '\0', MAX_TEXT_LENGTH);
+    memset(m_aText,     '\0', MAX_TEXT_LENGTH);
+    memset(m_aLastText, '\0', MAX_TEXT_LENGTH);
 }
 
 SpritedText::~SpritedText(){}
 
 void SpritedText::printText()
 {
-    removeSpriteEndingIfNecessery();
+    if(strcmp(m_aLastText, m_aText))
+    {
+        removeSpriteEndingIfNecessery();
 
-    m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
+        m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
-    m_ForegroundSprite.drawString(m_aText, 0, 0);
-    m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
+        m_ForegroundSprite.drawString(m_aText, 0, 0);
+        m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
 
-    m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y);                            
+        m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y);
+
+        strcpy(m_aLastText, m_aText); 
+    }                            
 }
 
 void SpritedText::removeSpriteEndingIfNecessery()
@@ -141,6 +151,11 @@ SpritedTextBase(ScreenPtr, coords, fontSize, 0xFFFFU, fontBGColor, fontMaskColor
     m_aText[2] = '9';
     m_aText[3] = '\0';
 
+    m_aLastText[0] = '9';
+    m_aLastText[1] = '9';
+    m_aLastText[2] = '9';
+    m_aLastText[3] = '\0';
+
     m_ForegroundSprite.setTextSize(m_FontSize);
     m_ForegroundSprite.setTextColor(m_FontFGColor, m_FontMaskColor, false);
     m_ForegroundSprite.setFreeFont( /* FMB18 */ FF23 /* FF43 */);
@@ -156,20 +171,25 @@ IAQText::~IAQText()
 
 void IAQText::printText()
 {
-    m_IAQReading = atoi(m_aText);
-    m_IAQColorIndex = m_IAQReading / IAQ_LEVEL_STEP_VALUE;
+    if(strcmp(m_aLastText, m_aText))
+    {
+        m_IAQReading = atoi(m_aText);
+        m_IAQColorIndex = m_IAQReading / IAQ_LEVEL_STEP_VALUE;
 
-    if( m_IAQColorIndex > (IAQ_COLOR_COUNT - 1) ) m_IAQColorIndex = IAQ_COLOR_COUNT - 1;
+        if( m_IAQColorIndex > (IAQ_COLOR_COUNT - 1) ) m_IAQColorIndex = IAQ_COLOR_COUNT - 1;
 
-    m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
+        m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
-    m_FontFGColor = m_aIAQColors[m_IAQColorIndex];
-    m_ForegroundSprite.fillRect(0, 0, m_MaxTextWidth, m_MaxTextHeight, m_FontMaskColor);
-    m_ForegroundSprite.setTextColor(m_FontFGColor);    
-    m_ForegroundSprite.drawString(m_aText, 0, 0);
-    m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
+        m_FontFGColor = m_aIAQColors[m_IAQColorIndex];
+        m_ForegroundSprite.fillRect(0, 0, m_MaxTextWidth, m_MaxTextHeight, m_FontMaskColor);
+        m_ForegroundSprite.setTextColor(m_FontFGColor);    
+        m_ForegroundSprite.drawString(m_aText, 0, 0);
+        m_ForegroundSprite.pushToSprite(&m_FinalSprite, 0, 0, m_FontMaskColor);
 
-    m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y); 
+        m_FinalSprite.pushSprite(m_SpritePos.x, m_SpritePos.y); 
+
+        strcpy(m_aLastText, m_aText); 
+    }
 }
 
 void IAQText::CreateSprite()

@@ -1,7 +1,9 @@
+#include <stdio.h>
+
 #include <SPI.h>
 #include <WiFi.h>
 #include <SimpleFTPServer.h>
-#include <stdio.h>
+#include <Adafruit_NeoPixel.h>
 
 #include "SD.h"
 #include "Horo.h"     //Default background file
@@ -9,6 +11,8 @@
 #include "SensorBME680.h"
 #include "SdBmpReader.h"
 #include "DFRobot_SD3031.h"
+
+Adafruit_NeoPixel RGB(1, 48, NEO_GRBW + NEO_KHZ800);
 
 //SET_LOOP_TASK_STACK_SIZE( 240*1024 );
 
@@ -142,6 +146,12 @@ void taskRTC(void * pvParameters)
   while(true)
   {
     sTime = rtc.getRTCTime();
+
+    if(sTime.year == 2165)//workaround for noise on i2c genereted from internal power supply 
+    {
+      delay(10);
+      continue;
+    }
 
     if( xSemaphoreTake( xMutexTimeDateCStrings, portMAX_DELAY ) == pdTRUE )
     {
@@ -322,6 +332,11 @@ void initFTP()
 
 void setup() 
 {
+  RGB.begin();
+  RGB.setBrightness(30);
+  RGB.setPixelColor(0, 0x0DFC6D);
+  RGB.show();
+
   // Use serial port
   Serial.begin(115200);
 
