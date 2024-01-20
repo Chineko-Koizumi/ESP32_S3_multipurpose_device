@@ -2,14 +2,13 @@
 #define SPRITEDTEXT_H
 
 #include <SPI.h>
-#include <TFT_eSPI.h>      // Hardware-specific library
+#include <TFT_eSPI.h> 
 
 #include <Adafruit_NeoPixel.h>
 
 #include "ISpritedTextObserver.h"
 
 #include "InlineDefinitions.h"
-#include "FreeFonts.h"
 
 class SpritedTextBase : public ISpritedTextObserver
 {

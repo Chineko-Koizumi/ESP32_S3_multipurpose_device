@@ -15,8 +15,9 @@
   static const uint8_t FONT_SIZE_3       = 3U;
   static const uint8_t FONT_SIZE_4       = 4U;
 
-  static const uint8_t MAX_LINES_OF_TEXT = 19U; // Maximal value of lines to show on screen
-  static const uint8_t MAX_TEXT_SCREEN_LENGTH   = 20U; //19 + '/0' characters is maximal for one line in 2x font size
+  static const uint8_t  MAX_LINES_OF_TEXT       = 19U; // Maximal value of lines to show on screen
+  static const uint8_t  MAX_TEXT_SCREEN_LENGTH  = 20U; //19 + '/0' characters is maximal for one line in 2x font size
+  static const uint32_t PIXEL_ARRAY_SIZE        = 153600U;
 
   static const bool CUSTOM_FONT   = false;
   static const bool DEFAULT_FONT  = true;

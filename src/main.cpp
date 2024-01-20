@@ -1,16 +1,13 @@
 #include <stdio.h>
 
-#include <SPI.h>
 #include <WiFi.h>
 #include <SimpleFTPServer.h>
+#include <DFRobot_SD3031.h>
 
-#include "SD.h"
-#include "Horo.h"     //Default background file
-#include "SpritedText.h"
-#include "SpritedTextSubject.h"
+#include "SpritedText/SpritedText.h"
+#include "SpritedText/SpritedTextSubject.h"
 #include "SensorBME680.h"
-#include "SdBmpReader.h"
-#include "DFRobot_SD3031.h"
+#include "PNGDecoder.h"
 
 //SET_LOOP_TASK_STACK_SIZE( 64*1024 ); only for testing
 
@@ -268,7 +265,7 @@ void reinitScreen()
   // Initialise TFT screen
   tft.init();
   tft.setTextSize(FONT_SIZE_2);
-  tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
+  PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
 
   spritedTextSubject.NotifysetSpriteBackground(&tft);
   spritedTextSubject.NotifyForcePrintText();
@@ -358,6 +355,7 @@ void initFTP()
   }
 }
 
+
 void setup() 
 {
   // Use serial port
@@ -387,10 +385,7 @@ void setup()
     delay(1000);
   }
   
-  //BMP temp("/sdcard/240x320/Fumo.bmp");
-  //Fill screen with BG image
-  tft.setSwapBytes(true); 
-  tft.pushImage(0, 0, MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, (uint16_t *)Horo_image.pixel_data);
+  PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
 
   spritedTextSubject.Attach(&TextHumidity);
   spritedTextSubject.Attach(&TextTemperature);
@@ -439,7 +434,7 @@ void loop(void)
 
   spritedTextSubject.NotifyPrintText();
 
-  delay(250);
+  delay(100);
 }
 
 // Code to run a screen calibration, not needed when calibration values set in setup()

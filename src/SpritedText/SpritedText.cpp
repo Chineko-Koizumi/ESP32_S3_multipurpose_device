@@ -1,4 +1,4 @@
-#include "SpritedText.h"
+#include "SpritedText/SpritedText.h"
 
 #pragma region SpritedTextBase
 

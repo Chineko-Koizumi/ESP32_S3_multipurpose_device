@@ -1,5 +1,5 @@
 
-#include "SpritedTextSubject.h"
+#include "SpritedText/SpritedTextSubject.h"
 
  SpritedTextSubject::~SpritedTextSubject() 
   {
