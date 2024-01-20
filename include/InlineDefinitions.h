@@ -16,7 +16,7 @@
   static const uint8_t FONT_SIZE_4       = 4U;
 
   static const uint8_t MAX_LINES_OF_TEXT = 19U; // Maximal value of lines to show on screen
-  static const uint8_t MAX_TEXT_LENGTH   = 20U; //19 + '/0' characters is maximal for one line in 2x font size
+  static const uint8_t MAX_TEXT_SCREEN_LENGTH   = 20U; //19 + '/0' characters is maximal for one line in 2x font size
 
   static const bool CUSTOM_FONT   = false;
   static const bool DEFAULT_FONT  = true;
@@ -29,11 +29,12 @@
 
   static const uint16_t STACK_SIZE_BME680                   = 5000U;      // Stack size for BME680 detector task in ESP32 words (4 bytes per word)
   static const uint32_t STATE_SAVE_PERIOD	                  = 21600000U;  // 360 minutes - 4 times a day
-  static const uint32_t LOW_POWER_MODE_SENSOR_READ_PERIOD	  = 3000;       //3 sec
+  static const uint32_t LOW_POWER_MODE_SENSOR_READ_PERIOD	  = 3000U;      //3 sec
   static const float    TEMPERATURE_OFFSET                  = 4.0f;
-  static const int8_t   PRESSURE_OFFSET                     = 33;
+  static const int8_t   PRESSURE_OFFSET                     = 33U;
   static const int8_t   HUMIDITY_OFFSET                     = -2; 
   static const uint16_t IAQ_CONFIG_ITEMS_COUNT              = 462U;
+  static const uint8_t  IAQ_RGB_LED_GPIO                    = 48U;
   
 //-----------------------------------------------
 

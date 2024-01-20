@@ -4,6 +4,8 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>      // Hardware-specific library
 
+#include <Adafruit_NeoPixel.h>
+
 #include "ISpritedTextObserver.h"
 
 #include "InlineDefinitions.h"
@@ -12,8 +14,10 @@
 class SpritedTextBase : public ISpritedTextObserver
 {
 protected:
-    char m_aText[MAX_TEXT_LENGTH];
-    char m_aLastText[MAX_TEXT_LENGTH];
+    char m_aText[MAX_TEXT_SCREEN_LENGTH];
+    char m_aLastText[MAX_TEXT_SCREEN_LENGTH];
+
+    SemaphoreHandle_t* m_xMutexaTextAccess;
 
     TFT_eSprite    m_ForegroundSprite;
     TFT_eSprite    m_BackgroundSprite;
@@ -32,12 +36,14 @@ protected:
     uint16_t*    m_pImage;
 
 public:
-    SpritedTextBase(TFT_eSPI* ScreenPtr, 
-                const MyCoordinates& coords, 
-                uint8_t fontSize, 
-                uint16_t fontFGColor, 
-                uint16_t fontBGColor, 
-                uint16_t fontMaskColor);
+    SpritedTextBase(TFT_eSPI* ScreenPtr,
+                    SemaphoreHandle_t* xMutexaTextAccess,  
+                    const MyCoordinates& coords,
+                    uint8_t maxTextLength,
+                    uint8_t fontSize, 
+                    uint16_t fontFGColor, 
+                    uint16_t fontBGColor, 
+                    uint16_t fontMaskColor);
 
     ~SpritedTextBase();
 
@@ -55,7 +61,8 @@ private:
     void RemoveSpriteEndingIfNecessery();
 
 public:
-    SpritedText(TFT_eSPI* ScreenPtr, 
+    SpritedText(TFT_eSPI* ScreenPtr,
+                SemaphoreHandle_t* xMutexaTextAccess,  
                 const MyCoordinates& coords,
                 uint8_t  maxTextLength,     //excluding '\0'
                 uint8_t fontSize, 
@@ -78,14 +85,21 @@ private:
     static const uint8_t IAQ_COLOR_COUNT          = 8U; 
     static const uint8_t IAQ_LEVEL_STEP_VALUE     = 50U; 
 
+    Adafruit_NeoPixel* m_pRGB;
+
     uint16_t m_IAQReading;
     uint8_t m_IAQColorIndex;
+    uint8_t m_LastIAQColorIndex;
 
-    u_int16_t m_aIAQColors[IAQ_COLOR_COUNT];
+
+    u_int16_t m_aIAQTextColors[IAQ_COLOR_COUNT];
+    u_int32_t m_aIAQRGBColors[IAQ_COLOR_COUNT];
 
 public:
-    IAQText(TFT_eSPI* ScreenPtr, 
-            const MyCoordinates& coords, 
+    IAQText(TFT_eSPI* ScreenPtr,
+            SemaphoreHandle_t* xMutexaTextAccess,
+            const MyCoordinates& coords,
+            uint8_t  maxTextLength,  
             uint8_t fontSize,  
             uint16_t fontBGColor, 
             uint16_t fontMaskColor);

@@ -3,7 +3,6 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <SimpleFTPServer.h>
-#include <Adafruit_NeoPixel.h>
 
 #include "SD.h"
 #include "Horo.h"     //Default background file
@@ -13,9 +12,7 @@
 #include "SdBmpReader.h"
 #include "DFRobot_SD3031.h"
 
-Adafruit_NeoPixel RGB(1, 48, NEO_GRBW + NEO_KHZ800);
-
-//SET_LOOP_TASK_STACK_SIZE( 240*1024 );
+//SET_LOOP_TASK_STACK_SIZE( 64*1024 ); only for testing
 
 //------------START OF GLOBALS-----------------
 
@@ -24,9 +21,7 @@ TaskHandle_t xHandleBME680  = NULL;
 TaskHandle_t xHandleRTC     = NULL;
 TaskHandle_t xHandleFTP     = NULL;
 
-SemaphoreHandle_t xMutexBME680CStrings    = NULL;
-SemaphoreHandle_t xMutexTimeDateCStrings  = NULL;
-
+SemaphoreHandle_t xMutexSpritedTextCStringAccess    = NULL;
 
 //Screen globals
 TFT_eSPI tft  = TFT_eSPI();
@@ -35,21 +30,16 @@ TFT_eSPI tft  = TFT_eSPI();
 DFRobot_SD3031 rtc;
 
 //Text on display globals
-char aTemperatureCString[]  = "99.99 C";
-char aHumidityCString[]     = "100.00%";
-char aPressureCString[]     = "1000hPa";
-char aTimeDateCString[]     = "9999/99/99";
 
 SpritedTextSubject spritedTextSubject;
 
-SpritedText TextTemperature(&tft, MyCoordinates{5,175},   strlen(aTemperatureCString),  FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextHumidity(   &tft, MyCoordinates{5,225},   strlen(aHumidityCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextPressure(   &tft, MyCoordinates{5,275},   strlen(aPressureCString),     FONT_SIZE_1, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextTimeDate(   &tft, MyCoordinates{70,5},    strlen(aTimeDateCString),     FONT_SIZE_1, 0xF800,  0x0U, 0x0U);
+SpritedText TextTemperature(&tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,205},   strlen("99.99C"),     FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextHumidity(   &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,240},   strlen("100.00%"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextPressure(   &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,275},   strlen("1000hPa"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextDate(       &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{59,5},    strlen("9999/99/99"), FONT_SIZE_3, 0xF800,  0x0U, 0x0U);
+SpritedText TextTime(       &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{73,35},   strlen("99:99:99"),   FONT_SIZE_3, 0xF800,  0x0U, 0x0U);
 
-char aIAQCString[] = "999";
-
-IAQText TextIAQ(&tft, MyCoordinates{5,5}, FONT_SIZE_1, 0x0U, 0xFFF0U);
+IAQText TextIAQ(&tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,5}, strlen("999"), FONT_SIZE_3, 0x0U, 0xFFF0U);
 
 //FTP globals
 FtpServer ftpSrv;
@@ -97,12 +87,39 @@ void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsi
 
 void taskBME680(void * pvParameters)
 {
-  char m_aDataOutCString[100];
+  sTimeData_t sTime;
+
+  char aDataOutCString[100];
+  char aFileName[50];
+
   FILE* dataOut;
+
   float temperature, humidity, pressure, IAQ;
   uint8_t IAQACC;
 
-  dataOut = fopen("/sdcard/data.csv", "w");
+  char* pCharTemperature, *pCharHumidity, *pCharPressure, *pCharIAQ;
+
+  pCharTemperature  = TextTemperature.getCharArrayPtr();
+  pCharHumidity     = TextHumidity.getCharArrayPtr();
+  pCharPressure     = TextPressure.getCharArrayPtr();
+  pCharIAQ          = TextIAQ.getCharArrayPtr();
+  
+  for (size_t i = 0; i < 50; i++)
+  {
+    sTime = rtc.getRTCTime();
+
+    if(sTime.year == 2165)//workaround for noise on i2c genereted from internal power supply 
+    {
+      delay(10);
+      continue;
+    }
+    break;
+  }
+  
+  sprintf(aFileName,"/sdcard/SensorData/%04u_%02u_%02u_%02u_%02u_%02u.csv", sTime.year, sTime.month, sTime.day, sTime.hour, sTime.minute, sTime.second);
+  
+  Serial.println(aFileName);
+  dataOut = fopen(aFileName, "a");
   fprintf(dataOut, "Time,Temperature,Humidity,Pressure,IAQ");
 
   fclose(dataOut);
@@ -117,21 +134,21 @@ void taskBME680(void * pvParameters)
       IAQ         = SensorBME680::getIAQ();
       IAQACC      = SensorBME680::getIAQaccuracy();
 
-      if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
+      if( xSemaphoreTake( xMutexSpritedTextCStringAccess, portMAX_DELAY ) == pdTRUE )
       {
-        snprintf(aTemperatureCString,  8U,  "%.1fC",    temperature);
-        snprintf(aHumidityCString,     8U,  "%.1f%%",   humidity);
-        snprintf(aPressureCString,     8U,  "%.0fhPa",  pressure);
-        snprintf(aIAQCString,          4U,  "%.0f",     IAQ);
+        snprintf(pCharTemperature,  8U,  "%.1fC",    temperature);
+        snprintf(pCharHumidity,     8U,  "%.1f%%",   humidity);
+        snprintf(pCharPressure,     8U,  "%.0fhPa",  pressure);
+        snprintf(pCharIAQ,          4U,  "%.0f",     IAQ);
 
-        sprintf(m_aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
-
-        dataOut = fopen("/sdcard/data.csv", "a");
-        fprintf(dataOut, m_aDataOutCString);
-        fclose(dataOut);
-
-        xSemaphoreGive( xMutexBME680CStrings );
+        xSemaphoreGive( xMutexSpritedTextCStringAccess );
       }
+
+      sprintf(aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
+
+      dataOut = fopen(aFileName, "a");
+      fprintf(dataOut, aDataOutCString);
+      fclose(dataOut);
 
       Serial.printf("Temperature = %.1fC Humidity = %.1f%% Pressure = %.0fhPa IAQ = %.0f IAQ ACC = %u\n", temperature, humidity, pressure, IAQ, IAQACC);
     } 
@@ -146,6 +163,9 @@ void taskRTC(void * pvParameters)
 {    
   sTimeData_t sTime;
 
+  char* pCharDate = TextDate.getCharArrayPtr();
+  char* pCharTime = TextTime.getCharArrayPtr();
+
   while(true)
   {
     sTime = rtc.getRTCTime();
@@ -156,11 +176,12 @@ void taskRTC(void * pvParameters)
       continue;
     }
 
-    if( xSemaphoreTake( xMutexTimeDateCStrings, portMAX_DELAY ) == pdTRUE )
+    if( xSemaphoreTake( xMutexSpritedTextCStringAccess, portMAX_DELAY ) == pdTRUE )
     {
-      snprintf(aTimeDateCString,  11U,  "%u/%u/%u\n", sTime.year, sTime.month, sTime.day);
+      snprintf(pCharDate,  11U,  "%04u/%02u/%02u",  sTime.year, sTime.month, sTime.day);
+      snprintf(pCharTime,  9U,  "%02u:%02u:%02u",   sTime.hour, sTime.minute, sTime.second);
 
-      xSemaphoreGive( xMutexTimeDateCStrings);
+      xSemaphoreGive( xMutexSpritedTextCStringAccess);
     }
 
     Serial.print(sTime.year, DEC);//year
@@ -339,11 +360,6 @@ void initFTP()
 
 void setup() 
 {
-  RGB.begin();
-  RGB.setBrightness(30);
-  RGB.setPixelColor(0, 0x0DFC6D);
-  RGB.show();
-
   // Use serial port
   Serial.begin(115200);
 
@@ -379,13 +395,14 @@ void setup()
   spritedTextSubject.Attach(&TextHumidity);
   spritedTextSubject.Attach(&TextTemperature);
   spritedTextSubject.Attach(&TextPressure);
-  spritedTextSubject.Attach(&TextTimeDate);
+  spritedTextSubject.Attach(&TextDate);
   spritedTextSubject.Attach(&TextIAQ);
+  spritedTextSubject.Attach(&TextTime);
 
   spritedTextSubject.NotifyCreateSprite();
   spritedTextSubject.NotifysetSpriteBackground(&tft);
 
-  xMutexBME680CStrings = xSemaphoreCreateMutex();
+  xMutexSpritedTextCStringAccess = xSemaphoreCreateMutex();
   xTaskCreate(taskBME680,       // Function that implements the task. 
               "BME680",         // Text name for the task. 
               STACK_SIZE_BME680,// Stack size in words, not bytes. 
@@ -393,7 +410,6 @@ void setup()
               10U,               // Priority at which the task is created. 
               &xHandleBME680 ); // Used to pass out the created task's handle. 
 
-  xMutexTimeDateCStrings = xSemaphoreCreateMutex();
   xTaskCreate(taskRTC,
               "RTC",
               STACK_SIZE_RTC,
@@ -420,23 +436,6 @@ void loop(void)
     Serial.printf("x,y = %u,%u\n", x, y);
     reinitScreen();
   }
-
-    if( xSemaphoreTake( xMutexBME680CStrings, portMAX_DELAY ) == pdTRUE )
-    {
-      TextTemperature.setCString(aTemperatureCString);
-      TextHumidity.setCString(aHumidityCString);
-      TextPressure.setCString(aPressureCString);
-      TextIAQ.setCString(aIAQCString);
-    
-      xSemaphoreGive( xMutexBME680CStrings );
-    }
-
-    if( xSemaphoreTake( xMutexTimeDateCStrings, portMAX_DELAY ) == pdTRUE )
-    {
-      TextTimeDate.setCString(aTimeDateCString);
-
-      xSemaphoreGive( xMutexTimeDateCStrings);
-    }
 
   spritedTextSubject.NotifyPrintText();
 
