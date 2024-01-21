@@ -45,7 +45,7 @@
     }
   }
 
-  void SpritedTextSubject::NotifysetSpriteBackground(TFT_eSPI* ScreenPtr)
+  void SpritedTextSubject::NotifysetSpriteBackground(void* ScreenPtr)
   {
     std::list<ISpritedTextObserver *>::iterator iterator = list_observer_.begin();
     while (iterator != list_observer_.end()) 

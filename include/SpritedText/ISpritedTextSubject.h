@@ -13,7 +13,7 @@ class ISpritedTextSubject
   virtual void NotifyPrintText() = 0;
   virtual void NotifyForcePrintText() = 0;
   virtual void NotifyCreateSprite() = 0;
-  virtual void NotifysetSpriteBackground(TFT_eSPI* ScreenPtr) = 0;
+  virtual void NotifysetSpriteBackground(void* ScreenPtr) = 0;
 };
 
 #endif

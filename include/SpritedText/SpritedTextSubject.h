@@ -17,7 +17,7 @@ class SpritedTextSubject : public ISpritedTextSubject
   void NotifyPrintText()                              override;
   void NotifyForcePrintText()                         override;
   void NotifyCreateSprite()                           override;
-  void NotifysetSpriteBackground(TFT_eSPI* ScreenPtr) override;
+  void NotifysetSpriteBackground(void* ScreenPtr)     override;
 
  private:
   std::list<ISpritedTextObserver *> list_observer_;

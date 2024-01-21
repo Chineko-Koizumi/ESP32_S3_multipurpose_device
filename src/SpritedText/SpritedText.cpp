@@ -4,7 +4,7 @@
 
 SpritedTextBase::SpritedTextBase(   TFT_eSPI* ScreenPtr,
                                     SemaphoreHandle_t* xMutexaTextAccess,  
-                                    const MyCoordinates& coords,
+                                    const Coordinates& coords,
                                     uint8_t maxTextLength,
                                     uint8_t fontSize, 
                                     uint16_t fontFGColor, 
@@ -24,7 +24,7 @@ SpritedTextBase::SpritedTextBase(   TFT_eSPI* ScreenPtr,
 
 SpritedTextBase::~SpritedTextBase(){}
 
-void SpritedTextBase::setCoordinates(const MyCoordinates& coords)
+void SpritedTextBase::setCoordinates(const Coordinates& coords)
 {
     m_SpritePos = coords;
 }
@@ -45,7 +45,7 @@ char* SpritedTextBase::getCharArrayPtr()
 
 SpritedText::SpritedText(   TFT_eSPI* ScreenPtr,
                             SemaphoreHandle_t* xMutexaTextAccess,  
-                            const MyCoordinates& coords,
+                            const Coordinates& coords,
                             uint8_t  maxTextLength, 
                             uint8_t fontSize, 
                             uint16_t fontFGColor, 
@@ -138,19 +138,15 @@ void SpritedText::RemoveSpriteEndingIfNecessery()
     m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
     m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
     m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-
-    m_ForegroundSprite.setColorDepth(16);
-    m_BackgroundSprite.setColorDepth(16);
-    m_FinalSprite.setColorDepth(16);
  }
 
-void SpritedText::setSpriteBackground(TFT_eSPI* ScreenPtr)
+void SpritedText::setSpriteBackground(void* ScreenPtr)
 {
-    ScreenPtr->readRect(m_SpritePos.x, 
-                        m_SpritePos.y,
-                        m_MaxTextWidth, 
-                        m_MaxTextHeight,
-                        (uint16_t*) m_BackgroundSprite.getPointer());
+    static_cast<TFT_eSPI*>(ScreenPtr)->readRect(    m_SpritePos.x, 
+                                                    m_SpritePos.y,
+                                                    m_MaxTextWidth, 
+                                                    m_MaxTextHeight,
+                                                    (uint16_t*) m_BackgroundSprite.getPointer());
 }
 
 #pragma endregion SpritedText
@@ -159,7 +155,7 @@ void SpritedText::setSpriteBackground(TFT_eSPI* ScreenPtr)
 
 IAQText::IAQText(   TFT_eSPI* ScreenPtr,
                     SemaphoreHandle_t* xMutexaTextAccess, 
-                    const MyCoordinates& coords,
+                    const Coordinates& coords,
                     uint8_t  maxTextLength, 
                     uint8_t fontSize, 
                     uint16_t fontBGColor, 
@@ -287,19 +283,15 @@ void IAQText::CreateSprite()
     m_ForegroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
     m_BackgroundSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
     m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
-
-    m_ForegroundSprite.setColorDepth(16);
-    m_BackgroundSprite.setColorDepth(16);
-    m_FinalSprite.setColorDepth(16);
 }
 
-void IAQText::setSpriteBackground(TFT_eSPI* ScreenPtr)
+void IAQText::setSpriteBackground(void* ScreenPtr)
 {
-    ScreenPtr->readRect(SpritedTextBase::m_SpritePos.x, 
-                SpritedTextBase::m_SpritePos.y,
-                m_MaxTextWidth, 
-                m_MaxTextHeight,
-                (uint16_t*) m_BackgroundSprite.getPointer());
+    static_cast<TFT_eSPI*>(ScreenPtr)->readRect(    SpritedTextBase::m_SpritePos.x, 
+                                                    SpritedTextBase::m_SpritePos.y,
+                                                    m_MaxTextWidth, 
+                                                    m_MaxTextHeight,
+                                                    (uint16_t*) m_BackgroundSprite.getPointer());
 }
 
 #pragma endregion IAQText

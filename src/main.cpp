@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <byteswap.h>
 
 #include <WiFi.h>
 #include <SimpleFTPServer.h>
 #include <DFRobot_SD3031.h>
 
+#include "WiFiSignal/WiFiSignal.h"
 #include "SpritedText/SpritedText.h"
 #include "SpritedText/SpritedTextSubject.h"
 #include "SensorBME680.h"
@@ -28,15 +30,22 @@ DFRobot_SD3031 rtc;
 
 //Text on display globals
 
-SpritedTextSubject spritedTextSubject;
+#pragma region MainScreen
+SpritedTextSubject subjectMainScreen;
 
-SpritedText TextTemperature(&tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,205},   strlen("99.99C"),     FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextHumidity(   &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,240},   strlen("100.00%"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextPressure(   &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,275},   strlen("1000hPa"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
-SpritedText TextDate(       &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{59,5},    strlen("9999/99/99"), FONT_SIZE_3, 0xF800,  0x0U, 0x0U);
-SpritedText TextTime(       &tft, &xMutexSpritedTextCStringAccess, MyCoordinates{73,35},   strlen("99:99:99"),   FONT_SIZE_3, 0xF800,  0x0U, 0x0U);
+SpritedText TextTemperature(&tft, &xMutexSpritedTextCStringAccess, Coordinates{5,205},   strlen("99.99C"),     FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextHumidity(   &tft, &xMutexSpritedTextCStringAccess, Coordinates{5,240},   strlen("100.00%"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextPressure(   &tft, &xMutexSpritedTextCStringAccess, Coordinates{5,275},   strlen("1000hPa"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
+SpritedText TextDate(       &tft, &xMutexSpritedTextCStringAccess, Coordinates{59,5},    strlen("9999/99/99"), FONT_SIZE_3, 0xF800,  0x0U, 0x0U);
+SpritedText TextTime(       &tft, &xMutexSpritedTextCStringAccess, Coordinates{73,35},   strlen("99:99:99"),   FONT_SIZE_3, 0xF800,  0x0U, 0x0U);
 
-IAQText TextIAQ(&tft, &xMutexSpritedTextCStringAccess, MyCoordinates{5,5}, strlen("999"), FONT_SIZE_3, 0x0U, 0xFFF0U);
+WiFiSignal SpriteWiFiSignal(&tft, Coordinates{200 ,280});
+
+IAQText TextIAQ(&tft, &xMutexSpritedTextCStringAccess, Coordinates{5,5}, strlen("999"), FONT_SIZE_3, 0x0U, 0xFFF0U);
+
+
+
+#pragma endregion MainScreen
 
 //FTP globals
 FtpServer ftpSrv;
@@ -265,10 +274,20 @@ void reinitScreen()
   // Initialise TFT screen
   tft.init();
   tft.setTextSize(FONT_SIZE_2);
-  PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
 
-  spritedTextSubject.NotifysetSpriteBackground(&tft);
-  spritedTextSubject.NotifyForcePrintText();
+  switch (MENU_INDEX_VAR)
+  {
+    case MENU_MAIN:
+    {
+        PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
+
+        subjectMainScreen.NotifysetSpriteBackground(&tft);
+        subjectMainScreen.NotifyForcePrintText();
+    }break;
+    
+    default:
+      break;
+  }
 
 }
 
@@ -337,7 +356,6 @@ void initWiFi()
     tft.printf("WiFi disconected code:%d\n", WiFi.status());
   }
   
-
 }
 
 void initFTP()
@@ -354,7 +372,6 @@ void initFTP()
     tft.printf("FTP not initialized\n");
   }
 }
-
 
 void setup() 
 {
@@ -387,15 +404,17 @@ void setup()
   
   PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
 
-  spritedTextSubject.Attach(&TextHumidity);
-  spritedTextSubject.Attach(&TextTemperature);
-  spritedTextSubject.Attach(&TextPressure);
-  spritedTextSubject.Attach(&TextDate);
-  spritedTextSubject.Attach(&TextIAQ);
-  spritedTextSubject.Attach(&TextTime);
+  subjectMainScreen.Attach(&TextHumidity);
+  subjectMainScreen.Attach(&TextTemperature);
+  subjectMainScreen.Attach(&TextPressure);
+  subjectMainScreen.Attach(&TextDate);
+  subjectMainScreen.Attach(&TextIAQ);
+  subjectMainScreen.Attach(&TextTime);
+  subjectMainScreen.Attach(&SpriteWiFiSignal);
 
-  spritedTextSubject.NotifyCreateSprite();
-  spritedTextSubject.NotifysetSpriteBackground(&tft);
+  subjectMainScreen.NotifyCreateSprite();
+  subjectMainScreen.NotifysetSpriteBackground(&tft);
+  subjectMainScreen.NotifyPrintText();
 
   xMutexSpritedTextCStringAccess = xSemaphoreCreateMutex();
   xTaskCreate(taskBME680,       // Function that implements the task. 
@@ -432,7 +451,16 @@ void loop(void)
     reinitScreen();
   }
 
-  spritedTextSubject.NotifyPrintText();
+  switch (MENU_INDEX_VAR)
+  {
+    case MENU_MAIN:
+    {
+      subjectMainScreen.NotifyPrintText();
+    }break;
+    
+    default:
+      break;
+  }
 
   delay(100);
 }

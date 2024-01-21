@@ -12,7 +12,7 @@ class ISpritedTextObserver
   virtual void PrintText() = 0;
   virtual void ForcePrintText() = 0;
   virtual void CreateSprite() = 0;
-  virtual void setSpriteBackground(TFT_eSPI* ScreenPtr) = 0;
+  virtual void setSpriteBackground(void* ScreenPtr) = 0;
 
 };
 

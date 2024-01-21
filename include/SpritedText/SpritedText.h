@@ -21,7 +21,7 @@ protected:
     TFT_eSprite    m_ForegroundSprite;
     TFT_eSprite    m_BackgroundSprite;
     TFT_eSprite    m_FinalSprite;
-    MyCoordinates  m_SpritePos;
+    Coordinates  m_SpritePos;
 
     uint8_t m_FontSize;
     uint16_t m_FontFGColor;
@@ -37,7 +37,7 @@ protected:
 public:
     SpritedTextBase(TFT_eSPI* ScreenPtr,
                     SemaphoreHandle_t* xMutexaTextAccess,  
-                    const MyCoordinates& coords,
+                    const Coordinates& coords,
                     uint8_t maxTextLength,
                     uint8_t fontSize, 
                     uint16_t fontFGColor, 
@@ -48,7 +48,7 @@ public:
 
     void setCString(char cString[]);
     char* getCharArrayPtr();
-    void setCoordinates(const MyCoordinates& coords);
+    void setCoordinates(const Coordinates& coords);
 };
 
 class SpritedText : public SpritedTextBase
@@ -62,7 +62,7 @@ private:
 public:
     SpritedText(TFT_eSPI* ScreenPtr,
                 SemaphoreHandle_t* xMutexaTextAccess,  
-                const MyCoordinates& coords,
+                const Coordinates& coords,
                 uint8_t  maxTextLength,     //excluding '\0'
                 uint8_t fontSize, 
                 uint16_t fontFGColor, 
@@ -74,7 +74,7 @@ public:
     void PrintText()                                override;
     void ForcePrintText()                           override;
     void CreateSprite()                             override;
-    void setSpriteBackground(TFT_eSPI* ScreenPtr)   override;
+    void setSpriteBackground(void* ScreenPtr)       override;
 };
 
 class IAQText : public SpritedTextBase
@@ -97,7 +97,7 @@ private:
 public:
     IAQText(TFT_eSPI* ScreenPtr,
             SemaphoreHandle_t* xMutexaTextAccess,
-            const MyCoordinates& coords,
+            const Coordinates& coords,
             uint8_t  maxTextLength,  
             uint8_t fontSize,  
             uint16_t fontBGColor, 
@@ -107,7 +107,7 @@ public:
     void PrintText()                                override;
     void ForcePrintText()                           override;
     void CreateSprite()                             override;
-    void setSpriteBackground(TFT_eSPI* ScreenPtr)   override;
+    void setSpriteBackground(void* ScreenPtr)       override;
 };
 
 #endif
