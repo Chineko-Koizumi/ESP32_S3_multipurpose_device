@@ -1,9 +1,9 @@
-/* GIMP RGB C-Source image dump (WIFiSignal2.c) */
+/* GIMP RGB C-Source image dump (WIFiSignal2.h) */
 
 static const struct {
-  unsigned int 	 width;
-  unsigned int 	 height;
-  unsigned int 	 bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ 
+  uint16_t 	 width;
+  uint16_t 	 height;
+  uint16_t 	 bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ 
   mutable uint16_t	     pixel_data[ 40 * 40 ];
 } WiFiSignal2 = {
   40, 40, 2,

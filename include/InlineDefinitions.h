@@ -35,8 +35,8 @@ enum RSSI_READING
   
 struct Coordinates
 {
-  int16_t x;
-  int16_t y;
+  int32_t x;
+  int32_t y;
 };
 
 //-----------------------------------------------
@@ -46,10 +46,11 @@ struct Coordinates
 //-----------------------------------------------
 enum MENU_INDEX
 {
-  MENU_MAIN = 0U
+  MENU_MAIN = 0U,
+  MENU_WIFI = 1U
 };
 
-static const uint8_t MENU_INDEX_VAR = MENU_MAIN; //default values is main menu
+static uint8_t MENU_INDEX_VAR = MENU_MAIN; //default values is main menu
 
 //-----------------------------------------------
 

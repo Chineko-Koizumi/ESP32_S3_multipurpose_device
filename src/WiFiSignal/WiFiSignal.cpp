@@ -10,7 +10,8 @@
 
 WiFiSignal::WiFiSignal(TFT_eSPI *pScreen, const Coordinates& spritePossition):
 m_CurrentSprite(pScreen),
-m_SpritePossition(spritePossition),
+m_SpritePossitionLeftUp(spritePossition),
+m_SpritePossitionRightDown(Coordinates{spritePossition.x + WiFiSignal1.width, spritePossition.y + WiFiSignal1.height}),
 m_LastRSSI(WIFI_SIGNAL_LOW)
 {
 
@@ -73,10 +74,22 @@ void WiFiSignal::SignalStrength(int8_t RSSI)
 void WiFiSignal::PrintSprite()
 {
     SignalStrength(WiFi.RSSI());
-    m_CurrentSprite.pushSprite(m_SpritePossition.x, m_SpritePossition.y, 0x07E0U);
+    m_CurrentSprite.pushSprite(m_SpritePossitionLeftUp.x, m_SpritePossitionLeftUp.y, 0x07E0U);
 }
 
 void WiFiSignal::ForcePrintSprite()
 {
     PrintSprite();
+}
+
+bool WiFiSignal::BoundsOf(int16_t x, int16_t y)
+{
+    if( (x >= m_SpritePossitionLeftUp.x) && (x <= m_SpritePossitionRightDown.x) )
+    {
+        if( (y >= m_SpritePossitionLeftUp.y) && (y <= m_SpritePossitionRightDown.y) )
+        {
+            return true;
+        }
+    }
+    return false;  
 }

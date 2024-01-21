@@ -437,7 +437,8 @@ void setup()
               &xHandleFTP);
 }
 
-  bool pressed = false;
+  bool pressed  = false;
+  bool lifted   = true;
   uint16_t x,y;
 
 void loop(void) 
@@ -446,7 +447,37 @@ void loop(void)
   if (pressed) 
   {
     Serial.printf("x,y = %u,%u\n", x, y);
-    reinitScreen();
+    if(lifted)
+    {
+      switch (MENU_INDEX_VAR)
+      {
+        case MENU_MAIN:
+        {
+          if(SpriteWiFiSignal.BoundsOf(x, y))
+          {
+            MENU_INDEX_VAR = MENU_WIFI;
+          }
+        }break;
+
+        case MENU_WIFI:
+        {
+          MENU_INDEX_VAR = MENU_MAIN;
+
+          PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
+
+          subjectMainScreen.NotifysetSpriteBackground(&tft);
+          subjectMainScreen.NotifyForcePrintSprite();
+        }break;
+
+        default:
+          break;
+      }
+      lifted = false;
+    }
+  }
+  else
+  {
+    lifted = true;
   }
 
   switch (MENU_INDEX_VAR)
@@ -455,7 +486,14 @@ void loop(void)
     {
       subjectMainScreen.NotifyPrintSprite();
     }break;
-    
+
+    case MENU_WIFI:
+    {
+      tft.fillScreen(TFT_BLACK);
+      tft.printf("Connected: %s\n Signal:%d", WiFi.SSID(), WiFi.RSSI());
+      tft.setCursor(5,5);
+    }break;
+
     default:
       break;
   }
