@@ -70,13 +70,13 @@ void WiFiSignal::SignalStrength(int8_t RSSI)
     }
 }
 
-void WiFiSignal::PrintText()
+void WiFiSignal::PrintSprite()
 {
     SignalStrength(WiFi.RSSI());
     m_CurrentSprite.pushSprite(m_SpritePossition.x, m_SpritePossition.y, 0x07E0U);
 }
 
-void WiFiSignal::ForcePrintText()
+void WiFiSignal::ForcePrintSprite()
 {
-    PrintText();
+    PrintSprite();
 }

@@ -6,8 +6,8 @@
 #include <DFRobot_SD3031.h>
 
 #include "WiFiSignal/WiFiSignal.h"
+#include "Sprite/SpriteSubject.h"
 #include "SpritedText/SpritedText.h"
-#include "SpritedText/SpritedTextSubject.h"
 #include "SensorBME680.h"
 #include "PNGDecoder.h"
 
@@ -31,7 +31,7 @@ DFRobot_SD3031 rtc;
 //Text on display globals
 
 #pragma region MainScreen
-SpritedTextSubject subjectMainScreen;
+SpriteSubject subjectMainScreen;
 
 SpritedText TextTemperature(&tft, &xMutexSpritedTextCStringAccess, Coordinates{5,205},   strlen("99.99C"),     FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
 SpritedText TextHumidity(   &tft, &xMutexSpritedTextCStringAccess, Coordinates{5,240},   strlen("100.00%"),    FONT_SIZE_3, 0xFFFFU, 0x0U, 0x0U);
@@ -42,8 +42,6 @@ SpritedText TextTime(       &tft, &xMutexSpritedTextCStringAccess, Coordinates{7
 WiFiSignal SpriteWiFiSignal(&tft, Coordinates{200 ,280});
 
 IAQText TextIAQ(&tft, &xMutexSpritedTextCStringAccess, Coordinates{5,5}, strlen("999"), FONT_SIZE_3, 0x0U, 0xFFF0U);
-
-
 
 #pragma endregion MainScreen
 
@@ -282,7 +280,7 @@ void reinitScreen()
         PNGDecoder::setBackground(&tft, "/Backgrounds/Default.png");
 
         subjectMainScreen.NotifysetSpriteBackground(&tft);
-        subjectMainScreen.NotifyForcePrintText();
+        subjectMainScreen.NotifyForcePrintSprite();
     }break;
     
     default:
@@ -414,7 +412,7 @@ void setup()
 
   subjectMainScreen.NotifyCreateSprite();
   subjectMainScreen.NotifysetSpriteBackground(&tft);
-  subjectMainScreen.NotifyPrintText();
+  subjectMainScreen.NotifyPrintSprite();
 
   xMutexSpritedTextCStringAccess = xSemaphoreCreateMutex();
   xTaskCreate(taskBME680,       // Function that implements the task. 
@@ -455,7 +453,7 @@ void loop(void)
   {
     case MENU_MAIN:
     {
-      subjectMainScreen.NotifyPrintText();
+      subjectMainScreen.NotifyPrintSprite();
     }break;
     
     default:

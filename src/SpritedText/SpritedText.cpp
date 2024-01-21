@@ -77,7 +77,7 @@ SpritedTextBase(ScreenPtr, xMutexaTextAccess, coords, maxTextLength, fontSize, f
 
 SpritedText::~SpritedText(){}
 
-void SpritedText::PrintText()
+void SpritedText::PrintSprite()
 {
     if(strcmp(m_aLastText, m_aText))
     {
@@ -100,7 +100,7 @@ void SpritedText::PrintText()
     }                            
 }
 
-void SpritedText::ForcePrintText()
+void SpritedText::ForcePrintSprite()
 {
     m_BackgroundSprite.pushToSprite(&m_FinalSprite, 0, 0);
 
@@ -140,13 +140,13 @@ void SpritedText::RemoveSpriteEndingIfNecessery()
     m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
  }
 
-void SpritedText::setSpriteBackground(void* ScreenPtr)
+void SpritedText::setSpriteBackground(TFT_eSPI* pScreen)
 {
-    static_cast<TFT_eSPI*>(ScreenPtr)->readRect(    m_SpritePos.x, 
-                                                    m_SpritePos.y,
-                                                    m_MaxTextWidth, 
-                                                    m_MaxTextHeight,
-                                                    (uint16_t*) m_BackgroundSprite.getPointer());
+    pScreen->readRect(  m_SpritePos.x, 
+                        m_SpritePos.y,
+                        m_MaxTextWidth, 
+                        m_MaxTextHeight,
+                        (uint16_t*) m_BackgroundSprite.getPointer());
 }
 
 #pragma endregion SpritedText
@@ -208,7 +208,7 @@ IAQText::~IAQText()
     
 }
 
-void IAQText::PrintText()
+void IAQText::PrintSprite()
 {
     if(strcmp(m_aLastText, m_aText))
     {
@@ -247,7 +247,7 @@ void IAQText::PrintText()
     }
 }
 
-void IAQText::ForcePrintText()
+void IAQText::ForcePrintSprite()
 {
         m_IAQReading = atoi(m_aText);
         m_IAQColorIndex = m_IAQReading / IAQ_LEVEL_STEP_VALUE;
@@ -285,13 +285,13 @@ void IAQText::CreateSprite()
     m_FinalSprite.createSprite(m_MaxTextWidth, m_MaxTextHeight);
 }
 
-void IAQText::setSpriteBackground(void* ScreenPtr)
+void IAQText::setSpriteBackground(TFT_eSPI* pScreen)
 {
-    static_cast<TFT_eSPI*>(ScreenPtr)->readRect(    SpritedTextBase::m_SpritePos.x, 
-                                                    SpritedTextBase::m_SpritePos.y,
-                                                    m_MaxTextWidth, 
-                                                    m_MaxTextHeight,
-                                                    (uint16_t*) m_BackgroundSprite.getPointer());
+    pScreen->readRect(  SpritedTextBase::m_SpritePos.x, 
+                        SpritedTextBase::m_SpritePos.y,
+                        m_MaxTextWidth, 
+                        m_MaxTextHeight,
+                        (uint16_t*) m_BackgroundSprite.getPointer());
 }
 
 #pragma endregion IAQText

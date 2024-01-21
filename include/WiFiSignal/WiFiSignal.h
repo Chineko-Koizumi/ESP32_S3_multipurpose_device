@@ -1,12 +1,12 @@
 #include <SPI.h>
 #include <TFT_eSPI.h> 
 
-#include "SpritedText/ISpritedTextObserver.h"
+#include "Sprite/ISpriteObserver.h"
 
 #include "InlineDefinitions.h"
 
 
-class WiFiSignal: public ISpritedTextObserver
+class WiFiSignal: public ISpriteObserver
 {
 private:
     TFT_eSprite m_CurrentSprite;
@@ -21,8 +21,8 @@ public:
     ~WiFiSignal();
 
     void CreateSprite()                         override;
-    void PrintText()                            override;
-    void ForcePrintText()                       override;
-    void setSpriteBackground(void *pScreen)  override{}; //not used
+    void PrintSprite()                          override;
+    void ForcePrintSprite()                     override;
+    void setSpriteBackground(TFT_eSPI* pScreen) override{}; //not used
 };
 

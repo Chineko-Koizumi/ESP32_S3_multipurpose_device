@@ -6,11 +6,10 @@
 
 #include <Adafruit_NeoPixel.h>
 
-#include "ISpritedTextObserver.h"
-
+#include "Sprite/ISpriteObserver.h"
 #include "InlineDefinitions.h"
 
-class SpritedTextBase : public ISpritedTextObserver
+class SpritedTextBase : public ISpriteObserver
 {
 protected:
     char m_aText[MAX_TEXT_SCREEN_LENGTH];
@@ -71,10 +70,10 @@ public:
 
     ~SpritedText();
 
-    void PrintText()                                override;
-    void ForcePrintText()                           override;
-    void CreateSprite()                             override;
-    void setSpriteBackground(void* ScreenPtr)       override;
+    void PrintSprite()                          override;
+    void ForcePrintSprite()                     override;
+    void CreateSprite()                         override;
+    void setSpriteBackground(TFT_eSPI* pScreen) override;
 };
 
 class IAQText : public SpritedTextBase
@@ -104,10 +103,10 @@ public:
             uint16_t fontMaskColor);
     ~IAQText();
 
-    void PrintText()                                override;
-    void ForcePrintText()                           override;
-    void CreateSprite()                             override;
-    void setSpriteBackground(void* ScreenPtr)       override;
+    void PrintSprite()                          override;
+    void ForcePrintSprite()                     override;
+    void CreateSprite()                         override;
+    void setSpriteBackground(TFT_eSPI* pScreen) override;
 };
 
 #endif
