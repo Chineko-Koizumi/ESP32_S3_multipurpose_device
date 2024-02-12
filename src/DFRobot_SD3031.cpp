@@ -26,7 +26,6 @@ static uint16_t date2days(uint16_t y, uint8_t m, uint8_t d)
 
 uint8_t DFRobot_SD3031::begin(void)
 {
-  _pWire->begin();
   _pWire->beginTransmission(_deviceAddr);
   _pWire->write(SD3031_REG_CTR2);
   if(_pWire->endTransmission() != 0){

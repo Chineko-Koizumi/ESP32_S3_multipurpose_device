@@ -124,7 +124,20 @@ void taskI2C(void * pvParameters)
   char aCharPressure[20];
 
   float temperature, humidity, pressure, IAQ;
+
   uint8_t IAQACC;
+  /*
+    IAQ Accuracy=0 could either mean:
+    BSEC was just started, and the sensor is stabilizing (this lasts normally 5min in LP mode or 20min in ULP mode),
+    there was a timing violation (i.e. BSEC was called too early or too late), which should be indicated by a warning/error flag by BSEC,
+
+    IAQ Accuracy=1 means the background history of BSEC is uncertain. This typically means the gas sensor data was too stable for BSEC to clearly define its references,
+   
+   
+    IAQ Accuracy=2 means BSEC found a new calibration data and is currently calibrating,
+
+    IAQ Accuracy=3 means BSEC calibrated successfully.
+  */
 
   for (size_t i = 0; i < 50; i++)
   {
@@ -132,7 +145,7 @@ void taskI2C(void * pvParameters)
 
     if(sTime.year == 2165)//workaround for noise on i2c genereted from internal power supply 
     {
-      delay(10);
+      delay(50);
       continue;
     }
     break;
@@ -190,6 +203,7 @@ void taskI2C(void * pvParameters)
     Serial.print(sTime.second, DEC);//second
     Serial.println(' ');
 
+    delay(10);
     if( (currentSecond % 3) == 0)
     {
       if (SensorBME680::run()) 
@@ -204,30 +218,30 @@ void taskI2C(void * pvParameters)
         snprintf(aCharHumidity,     8U,  "%.1f%%",   humidity);
         snprintf(aCharPressure,     8U,  "%.0fhPa",  pressure);
         
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelTemperature->SetLabelText(aCharTemperature);
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
+        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+        {
+          LabelTemperature->SetLabelText(aCharTemperature);
+          xSemaphoreGive( xMutexLabelUpdate);
+        }
 
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelHumidity->SetLabelText(aCharHumidity);
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
+        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+        {
+          LabelHumidity->SetLabelText(aCharHumidity);
+          xSemaphoreGive( xMutexLabelUpdate);
+        }
 
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelPressure->SetLabelText(aCharPressure);
+        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+        {
+          LabelPressure->SetLabelText(aCharPressure);
 
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
+          xSemaphoreGive( xMutexLabelUpdate);
+        }
 
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelIAQ->SetIAQValue(IAQ);
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
+        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+        {
+          LabelIAQ->SetIAQValue(IAQ);
+          xSemaphoreGive( xMutexLabelUpdate);
+        }
 
         sprintf(aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
 
@@ -350,8 +364,9 @@ void initI2C()
 {
   Wire.setPins(I2C_SDA, I2C_SCL);
 
-  SensorBME680::init(tft);
-  delay(100);
+  delay(300);
+    SensorBME680::init(tft);
+  delay(300);
 
   initRTC();
   delay(100);
