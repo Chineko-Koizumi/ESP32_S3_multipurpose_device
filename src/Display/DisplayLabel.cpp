@@ -1,4 +1,4 @@
-#include "DisplayLabel/DisplayLabel.h"
+#include "Display/DisplayLabel.h"
 
 #pragma region DisplayLabelBase
 

@@ -4,7 +4,8 @@
 #include <SimpleFTPServer.h>
 #include <DFRobot_SD3031.h>
 
-#include "DisplayLabel/DisplayLabel.h"
+#include "Display/DisplayLabel.h"
+#include "Display/DisplayCanvasSequence.h"
 #include "Sprites/DefaultBackground/Horo.h"
 #include "SensorBME680.h"
 
@@ -40,6 +41,8 @@ DisplayLabel *LabelTime         = nullptr;
 DisplayLabel *LabelDate         = nullptr;
 
 DisplayLabelIAQ  *LabelIAQ      = nullptr;
+
+DisplayCanvasSequence *SequenceWIFI = nullptr;
 
 #pragma endregion MainScreen
 
@@ -111,8 +114,8 @@ void taskI2C(void * pvParameters)
 
   sTimeData_t sTime;
   uint32_t currentSecond  = 0U;
-  uint64_t startTime    = 0U;
-  int64_t deltaTime = 0;
+  uint64_t startTime      = 0U;
+  uint64_t deltaTime      = 0;
 
   char aDataOutCString[100];
   char aFileName[50];
@@ -139,13 +142,14 @@ void taskI2C(void * pvParameters)
     IAQ Accuracy=3 means BSEC calibrated successfully.
   */
 
-  for (size_t i = 0; i < 50; i++)
+  for (size_t i = 0; i < 10; i++)
   {
+    delay(100);
     sTime = rtc.getRTCTime();
 
     if(sTime.year == 2165)//workaround for noise on i2c genereted from internal power supply 
     {
-      delay(50);
+      delay(100);
       continue;
     }
     break;
@@ -203,73 +207,65 @@ void taskI2C(void * pvParameters)
     Serial.print(sTime.second, DEC);//second
     Serial.println(' ');
 
-    delay(10);
-    if( (currentSecond % 3) == 0)
-    {
-      if (SensorBME680::run()) 
-      { // If new data is available
-        temperature = SensorBME680::getTemperature();
-        humidity    = SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET;
-        pressure    = SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET;
-        IAQ         = SensorBME680::getIAQ();
-        IAQACC      = SensorBME680::getIAQaccuracy();
+    if (SensorBME680::run()) 
+    { // If new data is available
+      temperature = SensorBME680::getTemperature();
+      humidity    = SensorBME680::getHumidity() + (float)HUMIDITY_OFFSET;
+      pressure    = SensorBME680::getPressure() / 100.0f + (float)PRESSURE_OFFSET;
+      IAQ         = SensorBME680::getIAQ();
+      IAQACC      = SensorBME680::getIAQaccuracy();
 
-        snprintf(aCharTemperature,  8U,  "%.1f°C",    temperature);
-        snprintf(aCharHumidity,     8U,  "%.1f%%",   humidity);
-        snprintf(aCharPressure,     8U,  "%.0fhPa",  pressure);
-        
-        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-        {
-          LabelTemperature->SetLabelText(aCharTemperature);
-          xSemaphoreGive( xMutexLabelUpdate);
-        }
+      snprintf(aCharTemperature,  8U,  "%.1f°C",    temperature);
+      snprintf(aCharHumidity,     8U,  "%.1f%%",   humidity);
+      snprintf(aCharPressure,     8U,  "%.0fhPa",  pressure);
+      
+      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+      {
+        LabelTemperature->SetLabelText(aCharTemperature);
+        xSemaphoreGive( xMutexLabelUpdate);
+      }
 
-        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-        {
-          LabelHumidity->SetLabelText(aCharHumidity);
-          xSemaphoreGive( xMutexLabelUpdate);
-        }
+      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+      {
+        LabelHumidity->SetLabelText(aCharHumidity);
+        xSemaphoreGive( xMutexLabelUpdate);
+      }
 
-        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-        {
-          LabelPressure->SetLabelText(aCharPressure);
+      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+      {
+        LabelPressure->SetLabelText(aCharPressure);
 
-          xSemaphoreGive( xMutexLabelUpdate);
-        }
+        xSemaphoreGive( xMutexLabelUpdate);
+      }
 
-        if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-        {
-          LabelIAQ->SetIAQValue(IAQ);
-          xSemaphoreGive( xMutexLabelUpdate);
-        }
+      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
+      {
+        LabelIAQ->SetIAQValue(IAQ);
+        xSemaphoreGive( xMutexLabelUpdate);
+      }
 
-        sprintf(aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
+      sprintf(aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
 
-        dataOut = fopen(aFileName, "a");
+      dataOut = fopen(aFileName, "a");
 
-        if(dataOut == NULL) 
-        {
-          Serial.printf("Error: %d (%s)\n", errno, strerror(errno));
-        }
-        else
-        {
-          fprintf(dataOut, aDataOutCString);
-          fclose(dataOut);
-        }
+      if(dataOut == NULL) 
+      {
+        Serial.printf("Error: %d (%s)\n", errno, strerror(errno));
+      }
+      else
+      {
+        fprintf(dataOut, aDataOutCString);
+        fclose(dataOut);
+      }
 
-        Serial.printf("Temperature = %.1fC Humidity = %.1f%% Pressure = %.0fhPa IAQ = %.0f IAQ ACC = %u\n", temperature, humidity, pressure, IAQ, IAQACC);
-      } 
-
+      Serial.printf("Temperature = %.1fC Humidity = %.1f%% Pressure = %.0fhPa IAQ = %.0f IAQ ACC = %u\n", temperature, humidity, pressure, IAQ, IAQACC);
       Serial.printf("Task RTC: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleI2C));
+    } 
 
-    }
+    ++currentSecond;
 
     deltaTime = millis() - startTime;
-    if(deltaTime < ONE_SECOND_TICK)
-    {
-      delay(ONE_SECOND_TICK - deltaTime);
-    }
-    ++currentSecond;
+    if(deltaTime < ONE_SECOND_TICK) delay(ONE_SECOND_TICK - deltaTime);
   }
 }
 
@@ -323,6 +319,7 @@ void initLVGL()
     background = lv_image_create(lv_screen_active());
     lv_image_set_src(background, &Horo);
     lv_obj_align(background, LV_ALIGN_CENTER, 0, 0);
+
 }
 
 void initTouch()
@@ -480,9 +477,11 @@ void setup()
   LabelHumidity     = new DisplayLabel(&defaultLabelStyle, 5, 235);
   LabelPressure     = new DisplayLabel(&defaultLabelStyle, 5, 275);
   LabelTime         = new DisplayLabel(&defaultLabelStyle, 59,  5);
-  //LabelDate         = new DisplayLabel(&defaultLabelStyle, 73,  5);
+  //LabelDate       = new DisplayLabel(&defaultLabelStyle, 73,  5);
 
   LabelIAQ          = new DisplayLabelIAQ(5, 5);
+
+  SequenceWIFI      = new DisplayCanvasSequence(200, 280);
 
   Serial.println("Software start in:");
   tft->println("Software start in:");
