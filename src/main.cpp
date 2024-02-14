@@ -42,7 +42,7 @@ DisplayLabel *LabelDate         = nullptr;
 
 DisplayLabelIAQ  *LabelIAQ      = nullptr;
 
-DisplayCanvasSequence *SequenceWIFI = nullptr;
+DisplayCanvasSequenceWiFiSignal *SequenceWIFI = nullptr;
 
 #pragma endregion MainScreen
 
@@ -108,7 +108,7 @@ void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsi
       Serial.printf("Task FTP: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleFTP));
 };
 
-void taskI2C(void * pvParameters)
+void taskDetectorDataFetch(void * pvParameters)
 {    
   FILE* dataOut;
 
@@ -262,6 +262,8 @@ void taskI2C(void * pvParameters)
       Serial.printf("Task RTC: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleI2C));
     } 
 
+    SequenceWIFI->SetSignalStrength(WiFi.RSSI());
+
     ++currentSecond;
 
     deltaTime = millis() - startTime;
@@ -354,7 +356,7 @@ void initRTC()
     tft->println("RTC failed ");
   }
   //rtc.setHourSystem(rtc.e24hours);//Set display format only needed for first time after new battery is added
-  //rtc.setTime(2024,2,12,12,22,0);//Initialize time
+  //rtc.setTime(2024,2,14,1,9,0);//Initialize time
 }
 
 void initI2C()
@@ -481,7 +483,7 @@ void setup()
 
   LabelIAQ          = new DisplayLabelIAQ(5, 5);
 
-  SequenceWIFI      = new DisplayCanvasSequence(200, 280);
+  SequenceWIFI      = new DisplayCanvasSequenceWiFiSignal(200, 280);
 
   Serial.println("Software start in:");
   tft->println("Software start in:");
@@ -494,9 +496,9 @@ void setup()
 
   xMutexLabelUpdate = xSemaphoreCreateMutex();
 
-  xTaskCreate(taskI2C,
-              "I2C",
-              STACK_SIZE_I2C,
+  xTaskCreate(taskDetectorDataFetch,
+              "DetectorDataFetch",
+              STACK_SIZE_DETECTORS,
               nullptr,
               10u,
               &xHandleI2C);

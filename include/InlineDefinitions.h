@@ -21,12 +21,18 @@
 //----------Detector related consts--------------
 //-----------------------------------------------
 
-  static const uint32_t STATE_SAVE_PERIOD	                  = 21600000U;  // 360 minutes - 4 times a day
-  static const float    TEMPERATURE_OFFSET                  = 4.0f;
-  static const int8_t   PRESSURE_OFFSET                     = 33U;
-  static const int8_t   HUMIDITY_OFFSET                     = -2; 
-  static const uint16_t IAQ_CONFIG_ITEMS_COUNT              = 462U;
-  static const uint8_t  IAQ_RGB_LED_GPIO                    = 48U;
+  static const uint32_t STATE_SAVE_PERIOD       = 21600000U;  // 360 minutes - 4 times a day
+  static const float    TEMPERATURE_OFFSET      = 4.0f;
+  static const int8_t   PRESSURE_OFFSET         = 33U;
+  static const int8_t   HUMIDITY_OFFSET         = -2; 
+  static const uint16_t IAQ_CONFIG_ITEMS_COUNT  = 462U;
+  static const uint8_t  IAQ_RGB_LED_GPIO        = 48U;
+
+  static const uint8_t I2C_SDA                  = 8U;
+  static const uint8_t I2C_SCL                  = 9U;
+
+  static const uint16_t ONE_SECOND_TICK         = 1000U;
+  static const uint16_t STACK_SIZE_DETECTORS    = 10000U;      // Stack size for Detectors task in ESP32 words (4 bytes per word)
   
 //-----------------------------------------------
 
@@ -55,18 +61,6 @@ static const char* FTP_PASSWORD  = "";
 static const char* WIFI_SSID      = "";
 static const char* WIFI_PASSWORD  = "";
   
-//-----------------------------------------------
-
-//-----------------------------------------------
-//------------I2C related consts-----------------
-//-----------------------------------------------
-
-static const uint8_t I2C_SDA  = 8U;
-static const uint8_t I2C_SCL  = 9U;
-
-static const uint16_t ONE_SECOND_TICK = 1000U;
-static const uint16_t STACK_SIZE_I2C  = 10000U;      // Stack size for FTP task in ESP32 words (4 bytes per word)
-
 //-----------------------------------------------
 
 //===============================================
