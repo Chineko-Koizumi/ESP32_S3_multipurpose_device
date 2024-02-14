@@ -136,7 +136,6 @@ void taskDetectorDataFetch(void * pvParameters)
 
     IAQ Accuracy=1 means the background history of BSEC is uncertain. This typically means the gas sensor data was too stable for BSEC to clearly define its references,
    
-   
     IAQ Accuracy=2 means BSEC found a new calibration data and is currently calibrating,
 
     IAQ Accuracy=3 means BSEC calibrated successfully.

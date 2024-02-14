@@ -1,6 +1,7 @@
 #include "Display/DisplayCanvasSequence.h"
 #include "InlineDefinitions.h"
 
+#include "Sprites/WiFi/noWiFi.h"
 #include "Sprites/WiFi/WiFiSignal1.h"
 #include "Sprites/WiFi/WiFiSignal2.h"
 #include "Sprites/WiFi/WiFiSignal3.h"
@@ -10,17 +11,18 @@ DisplayCanvasSequenceBase::~DisplayCanvasSequenceBase(){}
 
 DisplayCanvasSequenceWiFiSignal::DisplayCanvasSequenceWiFiSignal(int16_t posX, int16_t posY)
 {
-    m_pCanvas       = lv_canvas_create(lv_screen_active());
+    m_pImage        = lv_image_create(lv_screen_active());
     m_SequenceCount = 4U;
 
-    m_aBuffersArray = new uint8_t*[m_SequenceCount];
+    m_aBuffersArray = new lv_image_dsc_t*[m_SequenceCount];
 
-    lv_obj_set_pos(m_pCanvas, posX, posY);
+    lv_obj_align(m_pImage, LV_ALIGN_TOP_LEFT, posX, posY);
 
-    AddBuffer(const_cast<uint8_t*>(WiFiSignal1_map));
-    AddBuffer(const_cast<uint8_t*>(WiFiSignal2_map));
-    AddBuffer(const_cast<uint8_t*>(WiFiSignal3_map));
-    AddBuffer(const_cast<uint8_t*>(WiFiSignal4_map));
+    AddBuffer( &noWiFi );
+    AddBuffer( &WiFiSignal1 );
+    AddBuffer( &WiFiSignal2 );
+    AddBuffer( &WiFiSignal3 );
+    AddBuffer( &WiFiSignal4 );
 }
 
 DisplayCanvasSequenceWiFiSignal::~DisplayCanvasSequenceWiFiSignal()
@@ -28,9 +30,9 @@ DisplayCanvasSequenceWiFiSignal::~DisplayCanvasSequenceWiFiSignal()
     delete[] m_aBuffersArray;
 }
 
-void DisplayCanvasSequenceWiFiSignal::AddBuffer(uint8_t* pBuffer)
+void DisplayCanvasSequenceWiFiSignal::AddBuffer(lv_image_dsc_t* pBuffer)
 {
-    if(m_AddedBuffersIndex <= m_SequenceCount) return;
+    if(m_AddedBuffersIndex >= m_SequenceCount) return;
 
     m_aBuffersArray[m_AddedBuffersIndex] = pBuffer;
     ++m_AddedBuffersIndex;
@@ -40,16 +42,18 @@ void DisplayCanvasSequenceWiFiSignal::SetFrame(uint8_t frameNumber)
 {
     if(frameNumber >= m_SequenceCount) return;
 
-    lv_canvas_set_buffer(m_pCanvas, reinterpret_cast<void*>(m_aBuffersArray[frameNumber]), 40, 40, LV_COLOR_FORMAT_ARGB8888 );
+    lv_image_set_src( m_pImage, m_aBuffersArray[frameNumber] );
 }
 
 void DisplayCanvasSequenceWiFiSignal::SetSignalStrength(int8_t RSSI)
 {
+    if(RSSI == 0)SetFrame(NO_SIGNAL);
+
     if((WIFI_SIGNAL_VERY_GOOD <= RSSI))
     {
         if(m_LastRSSI != WIFI_SIGNAL_VERY_GOOD)
         {
-            SetFrame(3);
+            SetFrame(SIGNAL_VERY_GOOD);
             m_LastRSSI = WIFI_SIGNAL_VERY_GOOD;
         }
     }
@@ -57,7 +61,7 @@ void DisplayCanvasSequenceWiFiSignal::SetSignalStrength(int8_t RSSI)
     {
         if(m_LastRSSI != WIFI_SIGNAL_GOOD)
         {
-            SetFrame(2);
+            SetFrame(SIGNAL_GOOD);
             m_LastRSSI = WIFI_SIGNAL_GOOD;
         }
     }
@@ -65,7 +69,7 @@ void DisplayCanvasSequenceWiFiSignal::SetSignalStrength(int8_t RSSI)
     {
         if(m_LastRSSI != WIFI_SIGNAL_LOW)
         {
-            SetFrame(1);
+            SetFrame(SIGNAL_MEDIUM);
             m_LastRSSI = WIFI_SIGNAL_LOW;
         }
     }
@@ -73,7 +77,7 @@ void DisplayCanvasSequenceWiFiSignal::SetSignalStrength(int8_t RSSI)
     {
         if(m_LastRSSI != WIFI_SIGNAL_VERY_LOW)
         {
-            SetFrame(0);
+            SetFrame(SIGNAL_LOW);
             m_LastRSSI = WIFI_SIGNAL_VERY_LOW;
         }
     }
