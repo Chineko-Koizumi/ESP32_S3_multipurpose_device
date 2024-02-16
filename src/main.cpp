@@ -4,8 +4,10 @@
 #include <SimpleFTPServer.h>
 #include <DFRobot_SD3031.h>
 
-#include "Display/DisplayLabel.h"
 #include "Display/DisplayCanvasSequence.h"
+#include "Display/DisplayLabel.h"
+#include "Display/DisplayList.h"
+
 #include "Sprites/DefaultBackground/Horo.h"
 #include "SensorBME680.h"
 
@@ -43,6 +45,8 @@ DisplayLabel *LabelDate         = nullptr;
 DisplayLabelIAQ  *LabelIAQ      = nullptr;
 
 DisplayCanvasSequenceWiFiSignal *SequenceWIFI = nullptr;
+
+DisplayList * ListWiFi          = nullptr;
 
 #pragma endregion MainScreen
 
@@ -483,6 +487,8 @@ void setup()
   LabelIAQ          = new DisplayLabelIAQ(5, 5);
 
   SequenceWIFI      = new DisplayCanvasSequenceWiFiSignal(200, 280);
+
+  ListWiFi          = new DisplayList();
 
   Serial.println("Software start in:");
   tft->println("Software start in:");
