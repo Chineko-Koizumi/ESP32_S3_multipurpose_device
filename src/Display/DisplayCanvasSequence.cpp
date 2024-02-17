@@ -16,7 +16,11 @@ DisplayCanvasSequenceWiFiSignal::DisplayCanvasSequenceWiFiSignal(int16_t posX, i
 
     m_aBuffersArray = new lv_image_dsc_t*[m_SequenceCount];
 
-    lv_obj_align(m_pImage, LV_ALIGN_TOP_LEFT, posX, posY);
+    lv_obj_align(       m_pImage, LV_ALIGN_TOP_LEFT, posX, posY);
+    lv_obj_add_flag(    m_pImage, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(m_pImage, click_event_handler, LV_EVENT_CLICKED, nullptr);
+
+    DisplayWiFiList::init();
 
     AddBuffer( &noWiFi );
     AddBuffer( &WiFiSignal1 );
@@ -81,4 +85,10 @@ void DisplayCanvasSequenceWiFiSignal::SetSignalStrength(int8_t RSSI)
             m_LastRSSI = WIFI_SIGNAL_VERY_LOW;
         }
     }
+}
+
+void DisplayCanvasSequenceWiFiSignal::click_event_handler(lv_event_t * e)
+{
+    lv_obj_t * obj = static_cast<lv_obj_t *>(lv_event_get_target(e));
+    DisplayWiFiList::SetVisible(true);
 }
