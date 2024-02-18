@@ -1,26 +1,27 @@
-#ifndef DISPLAYCANVASSEQUENCE_H
-#define DISPLAYCANVASSEQUENCE_H
+#ifndef DISPLAYIMAGESEQUENCE_H
+#define DISPLAYIMAGESEQUENCE_H
 
 #include "lvgl/lvgl.h"
 #include "Display/DisplayWiFiList.h"
 
-class DisplayCanvasSequenceBase
+class DisplayImageSequenceBase
 { 
 protected:
     lv_obj_t *m_pImage{nullptr};
     lv_image_dsc_t **m_aBuffersArray{nullptr};
     uint8_t m_SequenceCount{0U};
     uint8_t m_AddedBuffersIndex{0U};
-
-public:
-    virtual ~DisplayCanvasSequenceBase()  = 0;
+    SemaphoreHandle_t *m_pRenderingMutex{nullptr};
 
     virtual void SetPossition(int16_t posX, int16_t posY) = 0;
     virtual void AddBuffer(lv_image_dsc_t* pBuffer) = 0;
     virtual void SetFrame(uint8_t frameNumber) = 0;
+
+public:
+    virtual ~DisplayImageSequenceBase()  = 0;
 };
 
-class DisplayCanvasSequenceWiFiSignal : public DisplayCanvasSequenceBase
+class DisplayImageSequenceWiFiSignal : public DisplayImageSequenceBase
 {
 private:
     enum
@@ -41,8 +42,8 @@ private:
     static void click_event_handler(lv_event_t * e);
 
 public:
-    DisplayCanvasSequenceWiFiSignal(int16_t posX, int16_t posY);
-    ~DisplayCanvasSequenceWiFiSignal();
+    DisplayImageSequenceWiFiSignal(SemaphoreHandle_t * pRenderingMutex, int16_t posX, int16_t posY);
+    ~DisplayImageSequenceWiFiSignal();
 
     void SetSignalStrength(int8_t RSSI);
 };

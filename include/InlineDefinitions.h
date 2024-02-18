@@ -10,7 +10,7 @@
   static const uint16_t MAX_IMAGE_WIDTH  = 240U;
   static const uint16_t MAX_IMAGE_HIGHT  = 320U;
 
-  static const uint32_t DRAW_BUF_SIZE = MAX_IMAGE_WIDTH * MAX_IMAGE_HIGHT * 2 / 5;
+  static const uint32_t DRAW_BUF_SIZE = MAX_IMAGE_WIDTH * MAX_IMAGE_HIGHT ;
 
   static const uint8_t WIFI_SIGNAL_SPRITE_WIDTH = 40U;
   static const uint8_t WIFI_SIGNAL_SPRITE_HIGHT = 40U;
@@ -60,6 +60,10 @@ static const char* FTP_PASSWORD  = "";
 
 static const char* WIFI_SSID      = "";
 static const char* WIFI_PASSWORD  = "";
+
+static const uint16_t ONE_SECOND_DELAY      = 1000U;
+
+static const uint16_t STACK_SIZE_WIFI_STRENGTH  = 2000U;
   
 //-----------------------------------------------
 

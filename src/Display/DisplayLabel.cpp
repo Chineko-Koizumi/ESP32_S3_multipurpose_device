@@ -10,8 +10,9 @@ DisplayLabelBase::~DisplayLabelBase()
 
 #pragma region DisplayLabel
 
-DisplayLabel::DisplayLabel(lv_style_t* pStyle, int16_t posX, int16_t posY )
+DisplayLabel::DisplayLabel(SemaphoreHandle_t *renderingMutex, lv_style_t* pStyle, int16_t posX, int16_t posY )
 {
+    DisplayLabelBase::m_pRenderingMutex = renderingMutex;
     DisplayLabelBase::m_pLabel = lv_label_create( lv_scr_act() );
     DisplayLabelBase::m_pStyle = pStyle;
 
@@ -23,15 +24,22 @@ DisplayLabel::~DisplayLabel(){}
 
 void DisplayLabel::SetLabelText(const char *pText )
 {
-    lv_label_set_text(m_pLabel, pText);
+    if( xSemaphoreTake( *m_pRenderingMutex, portMAX_DELAY ) == pdTRUE )
+    {
+        lv_label_set_text(m_pLabel, pText);
+
+        xSemaphoreGive(  *m_pRenderingMutex);
+    }
 }
 
 #pragma endregion DisplayLabel
 
 #pragma region DisplayLabelIAQ
 
-DisplayLabelIAQ::DisplayLabelIAQ(int16_t posX, int16_t posY )
+DisplayLabelIAQ::DisplayLabelIAQ(SemaphoreHandle_t *renderingMutex, int16_t posX, int16_t posY )
 {
+    DisplayLabelBase::m_pRenderingMutex = renderingMutex;
+
     m_aIAQTextColors[0] = 0x0720U; // 0-50      Light green --> Excellent:              Pure air
     m_aIAQTextColors[1] = 0x968AU; // 51-100    Green -->       Good:                   No irritation or impact on well-being
     m_aIAQTextColors[2] = 0xFFE0U; // 101-150   Yellow -->      Lightly polluted:       Reduction on well-being possible
@@ -70,7 +78,12 @@ DisplayLabelIAQ::DisplayLabelIAQ(int16_t posX, int16_t posY )
 
 void DisplayLabelIAQ::SetLabelText(const char *pText )
 {
-    lv_label_set_text(m_pLabel, pText);
+    if( xSemaphoreTake( *m_pRenderingMutex, portMAX_DELAY ) == pdTRUE )
+    {
+        lv_label_set_text(m_pLabel, pText);
+
+        xSemaphoreGive(  *m_pRenderingMutex);
+    } 
 }
 
 void DisplayLabelIAQ::SetIAQValue(float value)
@@ -95,7 +108,13 @@ void DisplayLabelIAQ::SetIAQValue(float value)
         m_pRGB->setPixelColor(0, m_aIAQRGBColors[m_IAQColorIndex]);
         m_pRGB->show();
 
-        lv_style_set_bg_color(&m_IAQStyle, lv_color_hex(m_aIAQRGBColors[m_IAQColorIndex]));
+        if( xSemaphoreTake( *m_pRenderingMutex, portMAX_DELAY ) == pdTRUE )
+        {
+            lv_style_set_bg_color(&m_IAQStyle, lv_color_hex(m_aIAQRGBColors[m_IAQColorIndex]));
+
+            xSemaphoreGive(  *m_pRenderingMutex);
+        }
+
         m_LastIAQColorIndex = m_IAQColorIndex;
     }
     

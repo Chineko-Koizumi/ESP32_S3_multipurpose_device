@@ -1,10 +1,9 @@
 #include <stdio.h>
 
-#include <WiFi.h>
 #include <SimpleFTPServer.h>
 #include <DFRobot_SD3031.h>
 
-#include "Display/DisplayCanvasSequence.h"
+#include "Display/DisplayImageSequence.h"
 #include "Display/DisplayLabel.h"
 
 #include "Sprites/DefaultBackground/Horo.h"
@@ -17,6 +16,7 @@ SET_LOOP_TASK_STACK_SIZE( 64*1024 );
 //Multi threading globals 
 TaskHandle_t xHandleI2C     = NULL;
 TaskHandle_t xHandleFTP     = NULL;
+TaskHandle_t xHandleWiFi    = NULL;
 
 SemaphoreHandle_t xMutexLabelUpdate    = NULL;
 
@@ -43,7 +43,7 @@ DisplayLabel *LabelDate         = nullptr;
 
 DisplayLabelIAQ  *LabelIAQ      = nullptr;
 
-DisplayCanvasSequenceWiFiSignal *SequenceWIFI = nullptr;
+DisplayImageSequenceWiFiSignal *WIFISignalLabel = nullptr;
 
 #pragma endregion MainScreen
 
@@ -108,6 +108,16 @@ void _transferCallback(FtpTransferOperation ftpOperation, const char* name, unsi
         */
       Serial.printf("Task FTP: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleFTP));
 };
+
+void taskWiFi(void * pvParameters)
+{
+  while(true)
+  {
+    WIFISignalLabel->SetSignalStrength(WiFi.RSSI());
+
+    delay(ONE_SECOND_DELAY);
+  }
+}
 
 void taskDetectorDataFetch(void * pvParameters)
 {    
@@ -184,13 +194,8 @@ void taskDetectorDataFetch(void * pvParameters)
     snprintf(aCharDate,  11U,  "%04u/%02u/%02u",  sTime.year, sTime.month, sTime.day);
     snprintf(aCharTime,  9U,  "%02u:%02u:%02u",   sTime.hour, sTime.minute, sTime.second);
 
-    if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-    {
-        LabelTime->SetLabelText(aCharTime);
-      //LabelDate->SetLabelText(aCharDate);
-
-      xSemaphoreGive( xMutexLabelUpdate);
-    }
+    LabelTime->SetLabelText(aCharTime);
+    //LabelDate->SetLabelText(aCharDate);
 
     Serial.print(sTime.year, DEC);//year
     Serial.print('/');
@@ -215,35 +220,15 @@ void taskDetectorDataFetch(void * pvParameters)
       IAQ         = SensorBME680::getIAQ();
       IAQACC      = SensorBME680::getIAQaccuracy();
 
-      snprintf(aCharTemperature,  8U,  "%.1f°C",    temperature);
+      snprintf(aCharTemperature,  8U,  "%.1f°C",   temperature);
       snprintf(aCharHumidity,     8U,  "%.1f%%",   humidity);
       snprintf(aCharPressure,     8U,  "%.0fhPa",  pressure);
-      
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelTemperature->SetLabelText(aCharTemperature);
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
-
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelHumidity->SetLabelText(aCharHumidity);
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
-
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelPressure->SetLabelText(aCharPressure);
-
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
-
-      if( xSemaphoreTake( xMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
-      {
-        LabelIAQ->SetIAQValue(IAQ);
-        xSemaphoreGive( xMutexLabelUpdate);
-      }
-
+    
+      LabelTemperature->SetLabelText(aCharTemperature);
+      LabelHumidity->SetLabelText(aCharHumidity);
+      LabelPressure->SetLabelText(aCharPressure);
+      LabelIAQ->SetIAQValue(IAQ);
+    
       sprintf(aDataOutCString,"\n%u,%.1f,%.1f,%.1f,%.1f", millis(), temperature, humidity, pressure, IAQ);
 
       dataOut = fopen(aFileName, "a");
@@ -262,10 +247,7 @@ void taskDetectorDataFetch(void * pvParameters)
       Serial.printf("Task RTC: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(xHandleI2C));
     } 
 
-    SequenceWIFI->SetSignalStrength(WiFi.RSSI());
-
     ++currentSecond;
-
     deltaTime = millis() - startTime;
     if(deltaTime < ONE_SECOND_TICK) delay(ONE_SECOND_TICK - deltaTime);
   }
@@ -283,7 +265,6 @@ void taskFTP(void * pvParameters)
 void initLVGL()
 {
   lv_init();
-
     display = lv_tft_espi_create(MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, draw_buf, DRAW_BUF_SIZE);
     lv_display_set_default(display);
 
@@ -475,15 +456,15 @@ void setup()
   initFTP();
   delay(100);
 
-  LabelTemperature  = new DisplayLabel(&defaultLabelStyle, 5, 195);
-  LabelHumidity     = new DisplayLabel(&defaultLabelStyle, 5, 235);
-  LabelPressure     = new DisplayLabel(&defaultLabelStyle, 5, 275);
-  LabelTime         = new DisplayLabel(&defaultLabelStyle, 59,  5);
-  //LabelDate       = new DisplayLabel(&defaultLabelStyle, 73,  5);
+  LabelTemperature  = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 5, 195);
+  LabelHumidity     = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 5, 235);
+  LabelPressure     = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 5, 275);
+  LabelTime         = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 59,  5);
+  //LabelDate       = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 73,  5);
 
-  LabelIAQ          = new DisplayLabelIAQ(5, 5);
+  LabelIAQ          = new DisplayLabelIAQ(&xMutexLabelUpdate, 5, 5);
 
-  SequenceWIFI      = new DisplayCanvasSequenceWiFiSignal(200, 280);
+  WIFISignalLabel      = new DisplayImageSequenceWiFiSignal(&xMutexLabelUpdate, 200, 280);
 
   Serial.println("Software start in:");
   tft->println("Software start in:");
@@ -509,6 +490,13 @@ void setup()
               nullptr,
               3u,
               &xHandleFTP);
+
+  xTaskCreate(taskWiFi,
+              "WiFiStrength",
+              STACK_SIZE_WIFI_STRENGTH,
+              nullptr,
+              3u,
+              &xHandleWiFi);
 }
 
 uint64_t upTime = 0U;
@@ -521,7 +509,7 @@ void loop(void)
   {
     lv_timer_handler();
 
-    xSemaphoreGive( xMutexLabelUpdate);
+    xSemaphoreGive(  xMutexLabelUpdate);
   }
 
   delay(1);

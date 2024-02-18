@@ -15,6 +15,8 @@ protected:
     lv_obj_t    *m_pLabel{nullptr};
     lv_style_t  *m_pStyle{nullptr};
 
+    SemaphoreHandle_t *m_pRenderingMutex{nullptr};
+
 public:
    virtual ~DisplayLabelBase() = 0;
 
@@ -25,7 +27,7 @@ class DisplayLabel: public DisplayLabelBase
 {
 
 public:
-    DisplayLabel(lv_style_t* pStyle, int16_t posX, int16_t posY );
+    DisplayLabel(SemaphoreHandle_t *renderingMutex, lv_style_t* pStyle, int16_t posX, int16_t posY );
     ~DisplayLabel();
 
    void SetLabelText(const char *pText ) override;  
@@ -52,7 +54,7 @@ private:
     void SetLabelText(const char *pText ) override;
 
 public:
-    DisplayLabelIAQ(int16_t posX, int16_t posY );
+    DisplayLabelIAQ(SemaphoreHandle_t *renderingMutex, int16_t posX, int16_t posY );
     ~DisplayLabelIAQ();
 
     void SetIAQValue(float value);
