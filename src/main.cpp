@@ -6,6 +6,8 @@
 #include "Display/DisplayImageSequence.h"
 #include "Display/DisplayLabel.h"
 
+#include "Display/DisplayFullKeyboard.h"
+
 #include "Sprites/DefaultBackground/Horo.h"
 #include "SensorBME680.h"
 
@@ -474,6 +476,8 @@ void setup()
     tft->println(i);
     delay(1000);
   }
+
+  DisplayFullKeyboard::Init();
 
   xMutexLabelUpdate = xSemaphoreCreateMutex();
 

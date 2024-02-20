@@ -22,7 +22,7 @@ DisplayImageSequenceWiFiSignal::DisplayImageSequenceWiFiSignal(SemaphoreHandle_t
     lv_obj_add_flag(    m_pImage, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(m_pImage, click_event_handler, LV_EVENT_CLICKED, nullptr);
 
-    DisplayWiFiList::init(m_pRenderingMutex);
+    DisplayWiFiList::Init(m_pRenderingMutex);
 
     AddBuffer( &noWiFi );
     AddBuffer( &WiFiSignal1 );

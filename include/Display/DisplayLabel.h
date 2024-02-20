@@ -1,12 +1,9 @@
 #ifndef DISPLAYLABEL_H
 #define DISPLAYLABEL_H
 
-#include <SPI.h>
-#include <TFT_eSPI.h> 
-#include "lvgl/lvgl.h"
-
 #include <Adafruit_NeoPixel.h>
 
+#include "lvgl/lvgl.h"
 #include "InlineDefinitions.h"
 
 class DisplayLabelBase
