@@ -266,7 +266,7 @@ void taskFTP(void * pvParameters)
 
 void initLVGL()
 {
-  lv_init();
+    lv_init();
     display = lv_tft_espi_create(MAX_IMAGE_WIDTH, MAX_IMAGE_HIGHT, draw_buf, DRAW_BUF_SIZE);
     lv_display_set_default(display);
 
@@ -440,6 +440,8 @@ void setup()
   // Use serial port
   Serial.begin(115200);
 
+  xMutexLabelUpdate = xSemaphoreCreateMutex();
+
   initLVGL();
   delay(100);
 
@@ -477,9 +479,7 @@ void setup()
     delay(1000);
   }
 
-  DisplayFullKeyboard::Init();
-
-  xMutexLabelUpdate = xSemaphoreCreateMutex();
+  DisplayFullKeyboard::Init(&xMutexLabelUpdate);
 
   xTaskCreate(taskDetectorDataFetch,
               "DetectorDataFetch",

@@ -22,6 +22,7 @@ private:
     static lv_obj_t * s_pWindow;
     static lv_obj_t * s_pExitButton;
     static lv_obj_t * s_pList;
+    static lv_obj_t * s_pTempLabel;
     static lv_obj_t * s_pTempButton;
 
     static lv_obj_t * s_pLastSelectedButton;
@@ -30,7 +31,7 @@ private:
     static lv_style_t s_WiFiSSIDListStyle;
     static lv_style_t s_WiFiSSIDWindowTitle;
 
-    static void list_event_handler(lv_event_t * e);
+    static void list_bt_event_handler(lv_event_t * e);
     static void exit_button_event_handler(lv_event_t * e);
 
     static void taskWiFiScan(void * pvParameters);

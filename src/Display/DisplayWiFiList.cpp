@@ -10,9 +10,10 @@ lv_obj_t * DisplayWiFiList::s_aLabels[MAX_WIFI_SSIDS_COUNT];
 
 int16_t DisplayWiFiList::s_SSIDsCount = 0;
 
-lv_obj_t * DisplayWiFiList::s_pExitButton   = nullptr;
-lv_obj_t * DisplayWiFiList::s_pList         = nullptr;
-lv_obj_t * DisplayWiFiList::s_pTempButton   = nullptr;
+lv_obj_t * DisplayWiFiList::s_pExitButton       = nullptr;
+lv_obj_t * DisplayWiFiList::s_pList             = nullptr;
+lv_obj_t * DisplayWiFiList::s_pTempLabel        = nullptr;
+lv_obj_t * DisplayWiFiList::s_pTempButton       = nullptr;
 
 lv_obj_t * DisplayWiFiList::s_pLastSelectedButton = nullptr;
 
@@ -95,35 +96,40 @@ void DisplayWiFiList::Init(SemaphoreHandle_t * pMutex)
     
     for(int i = 0; i < MAX_WIFI_SSIDS_COUNT; i++) 
     {
-        s_pTempButton = lv_button_create(s_pList);
+        
+        s_pTempLabel = lv_label_create(s_pList);
+        lv_label_set_text(s_pTempLabel, " ");
+        s_aLabels[i] = s_pTempLabel;
 
-        lv_obj_set_width(               s_pTempButton, lv_pct(100));
-        lv_obj_set_height(              s_pTempButton, lv_pct(10));
+        s_pTempButton = lv_button_create(s_pTempLabel);
+
+        lv_obj_add_style(               s_pTempLabel, &s_WiFiSSIDButtonStyle, 0);
+        lv_obj_set_width(               s_pTempLabel, lv_pct(100));
+        lv_obj_set_height(              s_pTempLabel, lv_pct(10));
+        lv_obj_set_style_pad_left(      s_pTempLabel, 0, 0);
+        lv_obj_set_style_pad_right(     s_pTempLabel, 0, 0);
+        lv_obj_set_style_pad_top(       s_pTempLabel, 0, 0);
+        lv_obj_set_style_pad_bottom(    s_pTempLabel, 0, 0);
+
+        lv_obj_add_event_cb(            s_pTempButton, list_bt_event_handler, LV_EVENT_CLICKED, nullptr);
+        lv_obj_add_style(               s_pTempButton, &s_WiFiSSIDButtonStyle, 0);
+        lv_obj_set_align(               s_pTempButton, LV_ALIGN_RIGHT_MID);
+        lv_obj_set_width(               s_pTempButton, lv_pct(10));
+        lv_obj_set_height(              s_pTempButton, lv_pct(100));
         lv_obj_set_style_pad_left(      s_pTempButton, 0, 0);
         lv_obj_set_style_pad_right(     s_pTempButton, 0, 0);
         lv_obj_set_style_pad_top(       s_pTempButton, 0, 0);
         lv_obj_set_style_pad_bottom(    s_pTempButton, 0, 0);
-        lv_obj_add_event_cb(            s_pTempButton, list_event_handler, LV_EVENT_CLICKED, nullptr);
-        lv_obj_add_style(               s_pTempButton, &s_WiFiSSIDButtonStyle, 0);
+        
+        lv_obj_add_flag(              s_pTempLabel, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(              s_pTempButton, LV_OBJ_FLAG_HIDDEN);
 
-        lv_obj_add_flag(             s_pTempButton, LV_OBJ_FLAG_HIDDEN);
-
-        s_aLabels[i] = lv_label_create(s_pTempButton);
-
-        lv_label_set_text(s_aLabels[i], " ");
     }
 }
 
-void DisplayWiFiList::list_event_handler(lv_event_t * e)
+void DisplayWiFiList::list_bt_event_handler(lv_event_t * e)
 {
-    lv_obj_t * pObj = static_cast<lv_obj_t *>(lv_event_get_target(e));
-
-    lv_obj_add_state(pObj, LV_STATE_CHECKED);
-    if (s_pLastSelectedButton!= nullptr)    lv_obj_remove_state(s_pLastSelectedButton, LV_STATE_CHECKED); 
-
-    DisplayFullKeyboard::SetVisible(true);
-
-    s_pLastSelectedButton = pObj;
+    DisplayFullKeyboard::UpdateSetVisible(true);
 }
 
 void DisplayWiFiList::exit_button_event_handler(lv_event_t * e)
@@ -155,7 +161,8 @@ void DisplayWiFiList::SetLabelTextAt(const char* pSSID, uint8_t index)
     if( xSemaphoreTake( *s_pMutexLabelUpdate, portMAX_DELAY ) == pdTRUE )
     {
         lv_label_set_text(s_aLabels[index], pSSID);
-        lv_obj_remove_flag( lv_obj_get_parent(s_aLabels[index]), LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag( s_aLabels[index], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag( lv_obj_get_child(s_aLabels[index], 0), LV_OBJ_FLAG_HIDDEN);
 
         xSemaphoreGive(  *s_pMutexLabelUpdate);
     }
@@ -169,7 +176,8 @@ void DisplayWiFiList::RemoveLabels()
 
         for (size_t i = 0; i < s_SSIDsCount ; i++)
         {
-            lv_obj_add_flag( lv_obj_get_parent(s_aLabels[i]), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag( s_aLabels[i], LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag( lv_obj_get_child(s_aLabels[i], 0), LV_OBJ_FLAG_HIDDEN);
         }
 
         xSemaphoreGive(  *s_pMutexLabelUpdate);
@@ -209,9 +217,7 @@ void DisplayWiFiList::taskWiFiScan(void * isExiting)
     }
 
     Serial.printf("Task WiFiScan: %u Bytes free on stack\n", uxTaskGetStackHighWaterMark(s_WiFiScan));
-    if( s_WiFiScan != NULL )
-    {
-        vTaskDelete( s_WiFiScan );
-    }
-    
+
+    s_WiFiScan = NULL;
+    vTaskDelete( NULL );
 }
