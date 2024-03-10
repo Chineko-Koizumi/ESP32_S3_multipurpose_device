@@ -5,12 +5,12 @@
 
 #include "lvgl/lvgl.h"
 #include "InlineDefinitions.h"
+#include "Styles.h"
 
 class DisplayLabelBase
 {
 protected:
     lv_obj_t    *m_pLabel{nullptr};
-    lv_style_t  *m_pStyle{nullptr};
 
     SemaphoreHandle_t *m_pRenderingMutex{nullptr};
 
@@ -24,7 +24,7 @@ class DisplayLabel: public DisplayLabelBase
 {
 
 public:
-    DisplayLabel(SemaphoreHandle_t *renderingMutex, lv_style_t* pStyle, int16_t posX, int16_t posY );
+    DisplayLabel(SemaphoreHandle_t *renderingMutex, int16_t posX, int16_t posY );
     ~DisplayLabel();
 
    void SetLabelText(const char *pText ) override;  
@@ -37,8 +37,6 @@ private:
     static const uint8_t IAQ_LEVEL_STEP_VALUE     = 50U; 
 
     Adafruit_NeoPixel* m_pRGB;
-
-    lv_style_t m_IAQStyle;
 
     uint16_t m_aIAQTextColors[IAQ_COLOR_COUNT];
     uint32_t m_aIAQRGBColors[IAQ_COLOR_COUNT];

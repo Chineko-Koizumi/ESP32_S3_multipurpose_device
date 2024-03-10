@@ -10,14 +10,16 @@ DisplayLabelBase::~DisplayLabelBase()
 
 #pragma region DisplayLabel
 
-DisplayLabel::DisplayLabel(SemaphoreHandle_t *renderingMutex, lv_style_t* pStyle, int16_t posX, int16_t posY )
+DisplayLabel::DisplayLabel(SemaphoreHandle_t *renderingMutex, int16_t posX, int16_t posY )
 {
     DisplayLabelBase::m_pRenderingMutex = renderingMutex;
     DisplayLabelBase::m_pLabel = lv_label_create( lv_scr_act() );
-    DisplayLabelBase::m_pStyle = pStyle;
 
     lv_obj_align(m_pLabel, LV_ALIGN_TOP_LEFT, posX, posY );
-    lv_obj_add_style(m_pLabel, m_pStyle, 0);
+    lv_obj_add_style(m_pLabel, &Styles::s_aStyles[Styles::STYLE_DEFAULT_FRAME], 0);
+
+    lv_obj_set_style_bg_color(  m_pLabel, lv_color_hex(0x115588), 0);
+    lv_obj_set_style_text_font( m_pLabel, &lv_font_montserrat_32, 0);
 }
 
 DisplayLabel::~DisplayLabel(){}
@@ -58,16 +60,13 @@ DisplayLabelIAQ::DisplayLabelIAQ(SemaphoreHandle_t *renderingMutex, int16_t posX
     m_aIAQRGBColors[6] = 0x9C0C4AU; // 301-351   Purple -->      Severely polluted:      More severe health issue possible if harmfull VOCs are present
     m_aIAQRGBColors[7] = 0x633100U; // >351      Brown -->       Extremely polluted:     Run!!!
 
-    lv_style_init(&m_IAQStyle);
-    lv_style_set_bg_color(&m_IAQStyle, lv_color_hex(m_aIAQRGBColors[0]));
-    lv_style_set_bg_opa(&m_IAQStyle, LV_OPA_50);
-    lv_style_set_border_width(&m_IAQStyle, 2);
-    lv_style_set_border_color(&m_IAQStyle, lv_color_black());
-    lv_style_set_text_font(&m_IAQStyle, &lv_font_montserrat_32);
-
     DisplayLabelBase::m_pLabel = lv_label_create( lv_scr_act() );
     lv_obj_align(m_pLabel, LV_ALIGN_TOP_LEFT, posX, posY );
-    lv_obj_add_style(m_pLabel, &m_IAQStyle, 0);
+
+    lv_obj_add_style(m_pLabel, &Styles::s_aStyles[Styles::STYLE_DEFAULT_FRAME], 0);
+
+    lv_obj_set_style_bg_color(  m_pLabel, lv_color_hex(m_aIAQRGBColors[0]), 0);
+    lv_obj_set_style_text_font( m_pLabel, &lv_font_montserrat_32, 0);
 
     m_pRGB = new Adafruit_NeoPixel(1, IAQ_RGB_LED_GPIO, NEO_GRBW + NEO_KHZ800);
     m_pRGB->setBrightness(30);
@@ -110,7 +109,7 @@ void DisplayLabelIAQ::SetIAQValue(float value)
 
         if( xSemaphoreTake( *m_pRenderingMutex, portMAX_DELAY ) == pdTRUE )
         {
-            lv_style_set_bg_color(&m_IAQStyle, lv_color_hex(m_aIAQRGBColors[m_IAQColorIndex]));
+            lv_obj_set_style_bg_color(m_pLabel, lv_color_hex(m_aIAQRGBColors[m_IAQColorIndex]), 0);
 
             xSemaphoreGive(  *m_pRenderingMutex);
         }

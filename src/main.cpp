@@ -3,12 +3,15 @@
 #include <SimpleFTPServer.h>
 #include <DFRobot_SD3031.h>
 
+#include "Styles.h"
+
 #include "Display/DisplayImageSequence.h"
 #include "Display/DisplayLabel.h"
 
 #include "Display/DisplayFullKeyboard.h"
 
 #include "Sprites/DefaultBackground/Horo.h"
+
 #include "SensorBME680.h"
 
 SET_LOOP_TASK_STACK_SIZE( 64*1024 );
@@ -34,8 +37,6 @@ lv_indev_t  *inputDevice  = nullptr;
 lv_obj_t    *background   = nullptr;
 
 TFT_eSPI * tft = nullptr;
-
-lv_style_t defaultLabelStyle;
 
 DisplayLabel *LabelTemperature  = nullptr;
 DisplayLabel *LabelPressure     = nullptr;
@@ -284,17 +285,6 @@ void initLVGL()
     tft->setTextSize(2U);
     tft->fillScreen(TFT_BLACK);
 
-    //-------------------------------------------------------------------
-    //-----------------------Default Style-------------------------------
-    //-------------------------------------------------------------------
-        lv_style_init(&defaultLabelStyle);
-        lv_style_set_bg_color(&defaultLabelStyle, lv_color_hex(0x115588));
-        lv_style_set_bg_opa(&defaultLabelStyle, LV_OPA_50);
-        lv_style_set_border_width(&defaultLabelStyle, 2);
-        lv_style_set_border_color(&defaultLabelStyle, lv_color_black());
-        lv_style_set_text_font(&defaultLabelStyle, &lv_font_montserrat_32);
-    //-------------------------------------------------------------------
-
     inputDevice = lv_indev_create();
     lv_indev_set_type(inputDevice, LV_INDEV_TYPE_POINTER);
     lv_indev_set_mode(inputDevice, LV_INDEV_MODE_TIMER);          //---+
@@ -445,6 +435,9 @@ void setup()
   initLVGL();
   delay(100);
 
+  Styles::Init();
+  delay(100);
+
   initTouch();
   delay(100);
 
@@ -460,15 +453,15 @@ void setup()
   initFTP();
   delay(100);
 
-  LabelTemperature  = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 5, 195);
-  LabelHumidity     = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 5, 235);
-  LabelPressure     = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 5, 275);
-  LabelTime         = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 59,  5);
-  //LabelDate       = new DisplayLabel(&xMutexLabelUpdate, &defaultLabelStyle, 73,  5);
+  LabelTemperature  = new DisplayLabel(&xMutexLabelUpdate, 5, 195);
+  LabelHumidity     = new DisplayLabel(&xMutexLabelUpdate, 5, 235);
+  LabelPressure     = new DisplayLabel(&xMutexLabelUpdate, 5, 275);
+  LabelTime         = new DisplayLabel(&xMutexLabelUpdate, 59,  5);
+  //LabelDate       = new DisplayLabel(&xMutexLabelUpdate, 73,  5);
 
   LabelIAQ          = new DisplayLabelIAQ(&xMutexLabelUpdate, 5, 5);
 
-  WIFISignalLabel      = new DisplayImageSequenceWiFiSignal(&xMutexLabelUpdate, 200, 280);
+  WIFISignalLabel   = new DisplayImageSequenceWiFiSignal(&xMutexLabelUpdate, 200, 280);
 
   Serial.println("Software start in:");
   tft->println("Software start in:");
