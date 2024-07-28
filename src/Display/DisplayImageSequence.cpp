@@ -14,21 +14,22 @@ DisplayImageSequenceWiFiSignal::DisplayImageSequenceWiFiSignal(SemaphoreHandle_t
     DisplayImageSequenceBase::m_pRenderingMutex = pRenderingMuxtex;
 
     m_pImage        = lv_image_create(lv_screen_active());
-    m_SequenceCount = 4U;
+    m_SequenceCount = SIGNAL_LAST;
 
     m_aBuffersArray = new lv_image_dsc_t*[m_SequenceCount];
 
-    lv_obj_align(       m_pImage, LV_ALIGN_TOP_LEFT, posX, posY);
-    lv_obj_add_flag(    m_pImage, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(m_pImage, click_event_handler, LV_EVENT_CLICKED, nullptr);
-
-    DisplayWiFiList::Init(m_pRenderingMutex);
+    lv_obj_align(m_pImage, LV_ALIGN_TOP_LEFT, posX, posY);
 
     AddBuffer( &noWiFi );
     AddBuffer( &WiFiSignal1 );
     AddBuffer( &WiFiSignal2 );
     AddBuffer( &WiFiSignal3 );
     AddBuffer( &WiFiSignal4 );
+    
+    SetFrame( NO_SIGNAL );
+    m_LastRSSI = NO_SIGNAL;
+
+    lv_obj_remove_flag(m_pImage, LV_OBJ_FLAG_HIDDEN);
 }
 
 DisplayImageSequenceWiFiSignal::~DisplayImageSequenceWiFiSignal()
@@ -38,7 +39,7 @@ DisplayImageSequenceWiFiSignal::~DisplayImageSequenceWiFiSignal()
 
 void DisplayImageSequenceWiFiSignal::AddBuffer(lv_image_dsc_t* pBuffer)
 {
-    if(m_AddedBuffersIndex >= m_SequenceCount) return;
+    if(m_AddedBuffersIndex > m_SequenceCount) return;
 
     m_aBuffersArray[m_AddedBuffersIndex] = pBuffer;
     ++m_AddedBuffersIndex;
@@ -92,10 +93,4 @@ void DisplayImageSequenceWiFiSignal::SetSignalStrength(int8_t RSSI)
             m_LastRSSI = WIFI_SIGNAL_VERY_LOW;
         }
     }
-}
-
-void DisplayImageSequenceWiFiSignal::click_event_handler(lv_event_t * e)
-{
-    lv_obj_t * obj = static_cast<lv_obj_t *>(lv_event_get_target(e));
-    DisplayWiFiList::UpdateWiFiList(false); //isExiting to false, this is entering phase
 }

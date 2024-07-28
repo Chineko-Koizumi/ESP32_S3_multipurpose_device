@@ -2,7 +2,6 @@
 #define DISPLAYIMAGESEQUENCE_H
 
 #include "lvgl/lvgl.h"
-#include "Display/DisplayWiFiList.h"
 
 class DisplayImageSequenceBase
 { 
@@ -30,7 +29,8 @@ private:
         SIGNAL_LOW,
         SIGNAL_MEDIUM,
         SIGNAL_GOOD,
-        SIGNAL_VERY_GOOD
+        SIGNAL_VERY_GOOD,
+        SIGNAL_LAST
     };
 
     int8_t m_LastRSSI{0};
@@ -38,8 +38,6 @@ private:
     virtual void SetPossition(int16_t posX, int16_t posY) override {};
     virtual void AddBuffer(lv_image_dsc_t* pBuffer) override;
     virtual void SetFrame(uint8_t frameNumber) override;
-
-    static void click_event_handler(lv_event_t * e);
 
 public:
     DisplayImageSequenceWiFiSignal(SemaphoreHandle_t * pRenderingMutex, int16_t posX, int16_t posY);

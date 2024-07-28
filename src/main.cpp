@@ -8,8 +8,6 @@
 #include "Display/DisplayImageSequence.h"
 #include "Display/DisplayLabel.h"
 
-#include "Display/DisplayFullKeyboard.h"
-
 #include "Sprites/DefaultBackground/Horo.h"
 
 #include "SensorBME680.h"
@@ -346,9 +344,38 @@ void initI2C()
 
 void initSDMMC()
 {
+  pinMode(GPIO_NUM_15, INPUT_PULLUP);
+  pinMode(GPIO_NUM_2, INPUT_PULLUP);
+
+  delay(500);
   SD_MMC.setPins(GPIO_NUM_14, GPIO_NUM_15, GPIO_NUM_2);
-    if(!SD_MMC.begin("/sdcard", ONE_BIT_MODE, true))
+    if(!SD_MMC.begin("/sdcard", ONE_BIT_MODE, false, 20000))
     {
+      /*
+          ESP_OK                      0       !< esp_err_t value indicating success (no error)
+          ESP_FAIL                    -1      !< Generic esp_err_t code indicating failure 
+
+          ESP_ERR_NO_MEM              0x101   !< Out of memory 
+          ESP_ERR_INVALID_ARG         0x102   !< Invalid argument 
+          ESP_ERR_INVALID_STATE       0x103   !< Invalid state 
+          ESP_ERR_INVALID_SIZE        0x104   !< Invalid size 
+          ESP_ERR_NOT_FOUND           0x105   !< Requested resource not found 
+          ESP_ERR_NOT_SUPPORTED       0x106   !< Operation or feature not supported 
+          ESP_ERR_TIMEOUT             0x107   !< Operation timed out 
+          ESP_ERR_INVALID_RESPONSE    0x108   !< Received response was invalid 
+          ESP_ERR_INVALID_CRC         0x109   !< CRC or checksum was invalid 
+          ESP_ERR_INVALID_VERSION     0x10A   !< Version was invalid 
+          ESP_ERR_INVALID_MAC         0x10B   !< MAC address was invalid 
+          ESP_ERR_NOT_FINISHED        0x10C   !< Operation has not fully completed 
+          ESP_ERR_NOT_ALLOWED         0x10D   !< Operation is not allowed 
+
+          ESP_ERR_WIFI_BASE           0x3000  !< Starting number of WiFi error codes 
+          ESP_ERR_MESH_BASE           0x4000  !< Starting number of MESH error codes 
+          ESP_ERR_FLASH_BASE          0x6000  !< Starting number of flash error codes 
+          ESP_ERR_HW_CRYPTO_BASE      0xc000  !< Starting number of HW cryptography module error codes 
+          ESP_ERR_MEMPROT_BASE        0xd000  !< Starting number of Memory Protection API error codes 
+        */
+        
         Serial.println("Card Mount Failed");
         return;
     }
@@ -471,8 +498,6 @@ void setup()
     tft->println(i);
     delay(1000);
   }
-
-  DisplayFullKeyboard::Init(&xMutexLabelUpdate);
 
   xTaskCreate(taskDetectorDataFetch,
               "DetectorDataFetch",

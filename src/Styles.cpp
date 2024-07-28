@@ -11,7 +11,8 @@ void Styles::Init()
 
   s_aInitPointers[STYLE_DEFAULT_FRAME] =  [](lv_style_t* pStyle)
   {
-    lv_style_set_bg_opa(        pStyle, LV_OPA_50);
+    lv_style_set_bg_color(pStyle, lv_color_white());
+    lv_style_set_bg_opa(  pStyle, 255);
 
     lv_style_set_border_width(  pStyle, 2);
     lv_style_set_border_color(  pStyle, lv_color_black());

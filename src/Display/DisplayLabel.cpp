@@ -19,6 +19,7 @@ DisplayLabel::DisplayLabel(SemaphoreHandle_t *renderingMutex, int16_t posX, int1
     lv_obj_add_style(m_pLabel, &Styles::s_aStyles[Styles::STYLE_DEFAULT_FRAME], 0);
 
     lv_obj_set_style_bg_color(  m_pLabel, lv_color_hex(0x115588), 0);
+    lv_obj_set_style_opa(       m_pLabel, LV_OPA_50, 0);
     lv_obj_set_style_text_font( m_pLabel, &lv_font_montserrat_32, 0);
 }
 
@@ -66,6 +67,7 @@ DisplayLabelIAQ::DisplayLabelIAQ(SemaphoreHandle_t *renderingMutex, int16_t posX
     lv_obj_add_style(m_pLabel, &Styles::s_aStyles[Styles::STYLE_DEFAULT_FRAME], 0);
 
     lv_obj_set_style_bg_color(  m_pLabel, lv_color_hex(m_aIAQRGBColors[0]), 0);
+    lv_obj_set_style_opa(       m_pLabel, LV_OPA_50, 0);
     lv_obj_set_style_text_font( m_pLabel, &lv_font_montserrat_32, 0);
 
     m_pRGB = new Adafruit_NeoPixel(1, IAQ_RGB_LED_GPIO, NEO_GRBW + NEO_KHZ800);
